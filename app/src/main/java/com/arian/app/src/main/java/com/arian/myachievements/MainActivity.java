@@ -68,8 +68,13 @@ public class MainActivity extends Activity {
 
     void buildUi(){
         FrameLayout frame=new FrameLayout(this);
+        frame.setBackgroundColor(bg());
+        frame.setOnApplyWindowInsetsListener((v, insets) -> {
+            v.setPadding(0, insets.getSystemWindowInsetTop(), 0, insets.getSystemWindowInsetBottom());
+            return insets;
+        });
         LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(bg());
-        LinearLayout top=new LinearLayout(this); top.setGravity(Gravity.CENTER_VERTICAL); top.setPadding(dp(10),dp(8),dp(8),dp(3));
+        LinearLayout top=new LinearLayout(this); top.setGravity(Gravity.CENTER_VERTICAL); top.setPadding(dp(10),dp(5),dp(8),dp(3));
         TextView menu=tv("☰",30,primaryText()); menu.setGravity(Gravity.CENTER); menu.setOnClickListener(v->showSideMenu());
         top.addView(menu,new LinearLayout.LayoutParams(dp(50),dp(50)));
         screenTitle=tv("All Achievements",27,primaryText()); screenTitle.setGravity(Gravity.CENTER_VERTICAL);
@@ -88,7 +93,7 @@ public class MainActivity extends Activity {
         TextView add=tv("+",34,Color.WHITE); add.setGravity(Gravity.CENTER);
         GradientDrawable fab=new GradientDrawable(); fab.setColor(CYAN); fab.setShape(GradientDrawable.OVAL); add.setBackground(fab); add.setElevation(dp(8));
         add.setOnClickListener(v->showEditor(-1));
-        FrameLayout.LayoutParams fp=new FrameLayout.LayoutParams(dp(62),dp(62),Gravity.RIGHT|Gravity.BOTTOM); fp.setMargins(0,0,dp(18),dp(18)); frame.addView(add,fp);
+        FrameLayout.LayoutParams fp=new FrameLayout.LayoutParams(dp(62),dp(62),Gravity.RIGHT|Gravity.BOTTOM); fp.setMargins(0,0,dp(18),dp(16)); frame.addView(add,fp);
         setContentView(frame); render();
     }
 
@@ -129,31 +134,31 @@ public class MainActivity extends Activity {
     void finishDrag(){if(dragged!=null){dragged.setAlpha(1f);dragged.setScaleX(1f);dragged.setScaleY(1f);dragged.setTranslationY(0);dragged.setElevation(dp(3));}for(int i=0;list!=null&&i<list.getChildCount();i++)list.getChildAt(i).setTranslationY(0);dragged=null;}
 
     View makeCard(Achievement a,int index){
-        LinearLayout card=new LinearLayout(this); card.setOrientation(LinearLayout.HORIZONTAL); card.setGravity(Gravity.CENTER_VERTICAL); card.setPadding(0,0,dp(4),0);
+        LinearLayout card=new LinearLayout(this); card.setOrientation(LinearLayout.HORIZONTAL); card.setGravity(Gravity.CENTER_VERTICAL); card.setPadding(dp(5),dp(5),dp(5),dp(5));
         GradientDrawable bgd=new GradientDrawable(); bgd.setColor(cardColor(a)); bgd.setCornerRadius(dp(16)); card.setBackground(bgd); card.setElevation(dp(3));
-        FrameLayout visual=new FrameLayout(this); GradientDrawable side=new GradientDrawable(); side.setColor(visualColor(a)); side.setCornerRadius(dp(16)); visual.setBackground(side);
+        FrameLayout visual=new FrameLayout(this); GradientDrawable side=new GradientDrawable(); side.setColor(visualColor(a)); side.setCornerRadius(dp(14)); visual.setBackground(side);
         if(a.imagePath!=null&&!a.imagePath.isEmpty()){
             try{ImageView im=new ImageView(this);Bitmap bm=BitmapFactory.decodeFile(a.imagePath);if(bm!=null){im.setImageBitmap(bm);im.setScaleType(ImageView.ScaleType.CENTER_CROP);visual.addView(im,new FrameLayout.LayoutParams(-1,-1));}else addMedal(visual,a);}catch(Exception ignored){addMedal(visual,a);}
         }else addMedal(visual,a);
-        TextView grip=tv("☷",24,a.done?(isLight()?GREEN:Color.WHITE):secondaryText()); grip.setGravity(Gravity.CENTER); visual.addView(grip,new FrameLayout.LayoutParams(dp(38),dp(38),Gravity.LEFT|Gravity.BOTTOM));
-        card.addView(visual,new LinearLayout.LayoutParams(dp(112),dp(112)));
+        TextView grip=tv("☷",23,a.done?(isLight()?GREEN:Color.WHITE):secondaryText()); grip.setGravity(Gravity.CENTER); visual.addView(grip,new FrameLayout.LayoutParams(dp(34),dp(34),Gravity.LEFT|Gravity.BOTTOM));
+        card.addView(visual,new LinearLayout.LayoutParams(dp(100),dp(100)));
 
-        LinearLayout text=new LinearLayout(this); text.setOrientation(LinearLayout.VERTICAL); text.setPadding(dp(12),dp(9),dp(4),dp(8));
+        LinearLayout text=new LinearLayout(this); text.setOrientation(LinearLayout.VERTICAL); text.setGravity(Gravity.CENTER_VERTICAL); text.setPadding(dp(11),dp(5),dp(5),dp(5));
         int textMain=a.done&&!isLight()?Color.WHITE:primaryText(); int textSecond=a.done&&!isLight()?Color.rgb(225,240,250):secondaryText();
-        TextView title=tv(a.title,21,textMain);title.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);title.setTextDirection(View.TEXT_DIRECTION_ANY_RTL);
-        TextView desc=tv(a.desc,16,textSecond);desc.setGravity(Gravity.RIGHT);desc.setTextDirection(View.TEXT_DIRECTION_ANY_RTL);
-        TextView status=tv(a.done?"Status: Completed":"Status: Not completed",13,a.done?(isLight()?GREEN:CYAN):secondaryText());status.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
-        text.addView(title,new LinearLayout.LayoutParams(-1,0,1));text.addView(desc,new LinearLayout.LayoutParams(-1,0,1));text.addView(status,new LinearLayout.LayoutParams(-1,dp(24)));card.addView(text,new LinearLayout.LayoutParams(0,dp(112),1));
+        TextView title=tv(a.title,20,textMain);title.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);title.setTextDirection(View.TEXT_DIRECTION_ANY_RTL);title.setSingleLine(false);title.setMaxLines(3);
+        TextView desc=tv(a.desc,15,textSecond);desc.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);desc.setTextDirection(View.TEXT_DIRECTION_ANY_RTL);desc.setSingleLine(false);desc.setMaxLines(3);
+        TextView status=tv(a.done?"Status: Completed":"Status: Not completed",12,a.done?(isLight()?GREEN:CYAN):secondaryText());status.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+        text.addView(title,new LinearLayout.LayoutParams(-1,0,1.05f)); text.addView(desc,new LinearLayout.LayoutParams(-1,0,1.0f)); text.addView(status,new LinearLayout.LayoutParams(-1,dp(22))); card.addView(text,new LinearLayout.LayoutParams(0,dp(100),1));
 
         LinearLayout actions=new LinearLayout(this);actions.setOrientation(LinearLayout.VERTICAL);actions.setGravity(Gravity.CENTER);
         TextView done=tv(a.done?"✓":"○",24,a.done?(isLight()?GREEN:CYAN):secondaryText());done.setGravity(Gravity.CENTER);done.setContentDescription("Toggle completed");done.setOnClickListener(v->{a.done=!a.done;save();render();});
         TextView del=tv("×",22,a.done?(isLight()?GREEN:Color.rgb(225,240,250)):secondaryText());del.setGravity(Gravity.CENTER);del.setContentDescription("Delete achievement");del.setOnClickListener(v->confirmDelete(index));
         TextView pin=tv(a.pinned?"📌":"○",20,a.pinned?(isLight()?GREEN:CYAN):secondaryText());pin.setGravity(Gravity.CENTER);pin.setContentDescription("Pin achievement");pin.setOnClickListener(v->{a.pinned=!a.pinned;save();render();});
-        actions.addView(done,new LinearLayout.LayoutParams(dp(42),dp(38)));actions.addView(pin,new LinearLayout.LayoutParams(dp(42),dp(38)));actions.addView(del,new LinearLayout.LayoutParams(dp(42),dp(36)));card.addView(actions,new LinearLayout.LayoutParams(dp(44),dp(112)));
+        actions.addView(done,new LinearLayout.LayoutParams(dp(38),dp(34)));actions.addView(pin,new LinearLayout.LayoutParams(dp(38),dp(34)));actions.addView(del,new LinearLayout.LayoutParams(dp(38),dp(32)));card.addView(actions,new LinearLayout.LayoutParams(dp(40),dp(100)));
 
         card.setTag(a);card.setOnClickListener(v->showEditor(index));
         card.setOnLongClickListener(v->{dragged=card;card.setAlpha(.72f);card.setScaleX(1.025f);card.setScaleY(1.025f);card.setElevation(dp(12));Toast.makeText(this,"Hold and drag to reorder",Toast.LENGTH_SHORT).show();if(android.os.Build.VERSION.SDK_INT>=24)card.startDragAndDrop(null,new View.DragShadowBuilder(card),null,View.DRAG_FLAG_GLOBAL);else card.startDrag(null,new View.DragShadowBuilder(card),null,0);return true;});
-        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(112));lp.setMargins(0,dp(8),0,dp(8));card.setLayoutParams(lp);return card;
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(110));lp.setMargins(0,dp(7),0,dp(7));card.setLayoutParams(lp);return card;
     }
 
     void confirmDelete(final int index){if(index<0||index>=data.size())return;new AlertDialog.Builder(this).setTitle("Delete achievement?").setMessage(data.get(index).title).setNegativeButton("Cancel",null).setPositiveButton("Delete",(d,w)->{data.remove(index);save();render();}).show();}
