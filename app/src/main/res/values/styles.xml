@@ -8,4 +8,12 @@
         <item name="android:colorAccent">#64C7F0</item>
         <item name="android:windowBackground">#202124</item>
     </style>
+    <style name="AppTheme_Light" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F5F6F8</item>
+        <item name="android:navigationBarColor">#E6E8EB</item>
+        <item name="android:colorAccent">#299BD0</item>
+        <item name="android:windowBackground">#F5F6F8</item>
+    </style>
 </resources>
