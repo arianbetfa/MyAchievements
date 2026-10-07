@@ -2786,7 +2786,11 @@ public class MainActivity extends Activity {
                 InputType.TYPE_NUMBER_VARIATION_PASSWORD
         );
 
-        pin.setMaxLength(4);
+       pin.setFilters(
+        new android.text.InputFilter[]{
+                new android.text.InputFilter.LengthFilter(4)
+        }
+);
 
         box.addView(
                 pin,
@@ -2895,7 +2899,11 @@ public class MainActivity extends Activity {
 
         input.setGravity(Gravity.CENTER);
         input.setTextSize(24);
-        input.setMaxLength(4);
+       input.setFilters(
+        new android.text.InputFilter[]{
+                new android.text.InputFilter.LengthFilter(4)
+        }
+);
 
         box.addView(
                 input,
