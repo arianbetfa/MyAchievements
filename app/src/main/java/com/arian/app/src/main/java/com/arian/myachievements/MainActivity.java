@@ -1411,27 +1411,30 @@ public class MainActivity extends Activity {
 
 
         /*
-         * DRAG HANDLE
+         * MEDAL EMOJI
+         * Small tier marker at the bottom-left of the achievement image.
+         * Reordering still works by long-pressing the card itself.
          */
-        TextView grip =
+        TextView tierEmoji =
                 tv(
-                        "☷",
+                        medalEmoji(a.medal),
                         19,
-                        a.done
-                                ? (
-                                    isLight()
-                                            ? GREEN
-                                            : Color.WHITE
-                                )
-                                : secondaryText()
+                        Color.WHITE
                 );
 
-        grip.setGravity(
+        tierEmoji.setGravity(
                 Gravity.CENTER
         );
 
+        tierEmoji.setShadowLayer(
+                dp(2),
+                0,
+                dp(1),
+                Color.argb(150, 0, 0, 0)
+        );
+
         visual.addView(
-                grip,
+                tierEmoji,
                 new FrameLayout.LayoutParams(
                         dp(26),
                         dp(26),
@@ -1551,7 +1554,7 @@ public class MainActivity extends Activity {
         desc.setIncludeFontPadding(true);
 
         // Keep Persian two-line descriptions compact enough to leave room for status.
-        desc.setLineSpacing(-2.0f, 1.0f);
+        desc.setLineSpacing(-3.0f, 1.0f);
 
         text.addView(
                 title,
@@ -1602,6 +1605,19 @@ public class MainActivity extends Activity {
                         -1,
                         dp(9)
                 )
+        );
+
+        // Only lift the status when the description actually wraps to two lines.
+        // One-line descriptions keep their current position and appearance.
+        desc.addOnLayoutChangeListener(
+                (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+
+                    if (desc.getLineCount() > 1) {
+                        status.setTranslationY(-dp(4));
+                    } else {
+                        status.setTranslationY(0);
+                    }
+                }
         );
 
         card.addView(
