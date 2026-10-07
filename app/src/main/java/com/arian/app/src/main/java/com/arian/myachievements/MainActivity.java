@@ -1550,6 +1550,9 @@ public class MainActivity extends Activity {
 
         desc.setIncludeFontPadding(true);
 
+        // Keep Persian two-line descriptions compact enough to leave room for status.
+        desc.setLineSpacing(-2.0f, 1.0f);
+
         text.addView(
                 title,
                 new LinearLayout.LayoutParams(
@@ -1597,7 +1600,7 @@ public class MainActivity extends Activity {
                 status,
                 new LinearLayout.LayoutParams(
                         -1,
-                        dp(11)
+                        dp(9)
                 )
         );
 
@@ -4908,6 +4911,16 @@ public class MainActivity extends Activity {
                                 String.valueOf(n)
                         );
 
+                if (gate) {
+                    b.setTypeface(
+                            android.graphics.Typeface.create(
+                                    "sans-serif-light",
+                                    android.graphics.Typeface.NORMAL
+                            )
+                    );
+                    b.setTextSize(22);
+                }
+
                 b.setOnClickListener(
                         digit
                 );
@@ -4936,6 +4949,16 @@ public class MainActivity extends Activity {
         Button clear =
                 pinButton("C");
 
+        if (gate) {
+            clear.setTypeface(
+                    android.graphics.Typeface.create(
+                            "sans-serif-light",
+                            android.graphics.Typeface.NORMAL
+                    )
+            );
+            clear.setTextSize(22);
+        }
+
         clear.setOnClickListener(
                 v -> {
 
@@ -4952,6 +4975,16 @@ public class MainActivity extends Activity {
         Button zero =
                 pinButton("0");
 
+        if (gate) {
+            zero.setTypeface(
+                    android.graphics.Typeface.create(
+                            "sans-serif-light",
+                            android.graphics.Typeface.NORMAL
+                    )
+            );
+            zero.setTextSize(22);
+        }
+
         zero.setOnClickListener(
                 digit
         );
@@ -4959,6 +4992,16 @@ public class MainActivity extends Activity {
 
         Button back =
                 pinButton("⌫");
+
+        if (gate) {
+            back.setTypeface(
+                    android.graphics.Typeface.create(
+                            "sans-serif-light",
+                            android.graphics.Typeface.NORMAL
+                    )
+            );
+            back.setTextSize(22);
+        }
 
         back.setOnClickListener(
                 v -> {
@@ -5009,6 +5052,26 @@ public class MainActivity extends Activity {
                                 ? "Unlock"
                                 : "Save"
                 );
+
+        if (gate) {
+            action.setTypeface(
+                    android.graphics.Typeface.create(
+                            "sans-serif-medium",
+                            android.graphics.Typeface.NORMAL
+                    )
+            );
+            action.setTextSize(18);
+
+            android.graphics.drawable.GradientDrawable unlockBg =
+                    new android.graphics.drawable.GradientDrawable();
+            unlockBg.setColor(
+                    isLight()
+                            ? Color.WHITE
+                            : Color.rgb(48, 50, 54)
+            );
+            unlockBg.setCornerRadius(dp(10));
+            action.setBackground(unlockBg);
+        }
 
         action.setOnClickListener(
                 v -> {
