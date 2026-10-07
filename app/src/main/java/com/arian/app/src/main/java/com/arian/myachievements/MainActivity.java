@@ -1566,6 +1566,41 @@ public class MainActivity extends Activity {
                 )
         );
 
+        /*
+         * STATUS
+         * Tiny, centered text directly under the description.
+         */
+        TextView status =
+                tv(
+                        a.done
+                                ? "Status: Completed"
+                                : "Status: Not Completed",
+                        7.5f,
+                        a.done
+                                ? Color.argb(170, 100, 199, 240)
+                                : Color.argb(125, 190, 190, 190)
+                );
+
+        status.setGravity(
+                Gravity.CENTER
+        );
+
+        status.setTextDirection(
+                View.TEXT_DIRECTION_ANY_RTL
+        );
+
+        status.setSingleLine(true);
+
+        status.setIncludeFontPadding(false);
+
+        text.addView(
+                status,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(11)
+                )
+        );
+
         card.addView(
                 text,
                 new LinearLayout.LayoutParams(
@@ -2490,7 +2525,7 @@ public class MainActivity extends Activity {
 
         customizeTitle.setPadding(
                 0,
-                dp(8),
+                dp(4),
                 0,
                 dp(2)
         );
@@ -2612,11 +2647,17 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
+        customizationStatus.setSingleLine(false);
+
+        customizationStatus.setMaxLines(2);
+
+        customizationStatus.setIncludeFontPadding(true);
+
         customizationStatus.setPadding(
                 0,
-                dp(2),
                 0,
-                dp(2)
+                0,
+                0
         );
 
         updateCustomizationStatus(
@@ -2628,7 +2669,7 @@ public class MainActivity extends Activity {
                 customizationStatus,
                 new LinearLayout.LayoutParams(
                         -1,
-                        dp(30)
+                        dp(40)
                 )
         );
 
@@ -2879,7 +2920,7 @@ public class MainActivity extends Activity {
                 preview,
                 new LinearLayout.LayoutParams(
                         -1,
-                        dp(90)
+                        dp(80)
                 )
         );
 
