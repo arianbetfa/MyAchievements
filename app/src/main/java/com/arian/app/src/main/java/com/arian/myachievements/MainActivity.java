@@ -2412,7 +2412,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams descLp =
                 new LinearLayout.LayoutParams(
                         -1,
-                        dp(60)
+                        dp(72)
                 );
 
         box.addView(
