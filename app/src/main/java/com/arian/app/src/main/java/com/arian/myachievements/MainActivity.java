@@ -36,6 +36,7 @@ public class MainActivity extends Activity {
     boolean appStartedOnce = false;
     boolean wasInBackground = false;
     boolean pinGateShowing = false;
+    boolean imagePickerActive = false;
 
     final int BG_DARK = Color.rgb(32,33,36);
     final int CARD_DARK = Color.rgb(61,65,70);
@@ -242,7 +243,7 @@ public class MainActivity extends Activity {
          * The Activity has gone to the background.
          * Returning to it will require the PIN.
          */
-        if (!isFinishing()) {
+        if (!isFinishing() && !imagePickerActive) {
             wasInBackground = true;
         }
     }
@@ -581,7 +582,7 @@ public class MainActivity extends Activity {
                 0,
                 0,
                 0,
-                dp(3)
+                dp(10)
         );
 
         root.addView(counts);
@@ -3488,6 +3489,8 @@ public class MainActivity extends Activity {
                 Intent.CATEGORY_OPENABLE
         );
 
+        imagePickerActive = true;
+
         startActivityForResult(
                 i,
                 77
@@ -3520,6 +3523,11 @@ public class MainActivity extends Activity {
                 resultCode,
                 dataIntent
         );
+
+        if (requestCode == 77) {
+        imagePickerActive = false;
+        wasInBackground = false;
+        }
 
         if (
                 requestCode != 77
