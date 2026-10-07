@@ -123,6 +123,7 @@ public class MainActivity extends Activity {
             desc = d;
             medal = m;
             done = c;
+
             imagePath =
                     img == null
                             ? ""
@@ -465,6 +466,7 @@ public class MainActivity extends Activity {
                 new GradientDrawable();
 
         fab.setColor(CYAN);
+
         fab.setShape(
                 GradientDrawable.OVAL
         );
@@ -982,13 +984,32 @@ public class MainActivity extends Activity {
         GradientDrawable visualBg =
                 new GradientDrawable();
 
-        visualBg.setColor(
-                visualColor(a)
-        );
+        /*
+         * اگر عکس داریم، کادر قبلی کاملاً حذف می‌شود.
+         * اگر عکس نداریم، ظاهر قبلی مدال حفظ می‌شود.
+         */
+        boolean hasImage =
+                a.imagePath != null
+                        && !a.imagePath.isEmpty();
 
-        visualBg.setCornerRadius(
-                dp(12)
-        );
+        if (hasImage) {
+
+            visualBg.setColor(
+                    Color.TRANSPARENT
+            );
+
+            visualBg.setCornerRadius(0);
+
+        } else {
+
+            visualBg.setColor(
+                    visualColor(a)
+            );
+
+            visualBg.setCornerRadius(
+                    dp(12)
+            );
+        }
 
         visual.setBackground(
                 visualBg
@@ -997,10 +1018,7 @@ public class MainActivity extends Activity {
         /*
          * IMAGE
          */
-        if (
-                a.imagePath != null
-                        && !a.imagePath.isEmpty()
-        ) {
+        if (hasImage) {
 
             try {
 
@@ -1027,6 +1045,9 @@ public class MainActivity extends Activity {
                             Color.TRANSPARENT
                     );
 
+                    /*
+                     * خود ImageView شکل اصلی را می‌گیرد.
+                     */
                     if (
                             "square".equals(
                                     a.imageShape
@@ -1037,17 +1058,26 @@ public class MainActivity extends Activity {
                                 GradientDrawable.RECTANGLE
                         );
 
+                        /*
+                         * گوشه‌های خیلی کم
+                         */
                         imageBg.setCornerRadius(
-                                dp(2)
+                                dp(3)
                         );
 
                     } else {
 
+                        /*
+                         * کاملاً دایره‌ای
+                         */
                         imageBg.setShape(
                                 GradientDrawable.OVAL
                         );
                     }
 
+                    /*
+                     * حاشیه بر اساس مدال
+                     */
                     imageBg.setStroke(
                             dp(1),
                             medalBorderColor(
@@ -1059,12 +1089,19 @@ public class MainActivity extends Activity {
                             imageBg
                     );
 
+                    /*
+                     * کلیپ کردن خود عکس
+                     * مطابق شکل Background
+                     */
                     im.setClipToOutline(true);
 
+                    /*
+                     * عکس کمی بزرگ‌تر از نسخه قبلی
+                     */
                     FrameLayout.LayoutParams imageLp =
                             new FrameLayout.LayoutParams(
-                                    dp(54),
-                                    dp(54)
+                                    dp(60),
+                                    dp(60)
                             );
 
                     imageLp.gravity =
@@ -1077,6 +1114,22 @@ public class MainActivity extends Activity {
 
                 } else {
 
+                    /*
+                     * اگر عکس خراب باشد
+                     * مدال نمایش داده می‌شود.
+                     */
+                    visualBg.setColor(
+                            visualColor(a)
+                    );
+
+                    visualBg.setCornerRadius(
+                            dp(12)
+                    );
+
+                    visual.setBackground(
+                            visualBg
+                    );
+
                     addMedal(
                             visual,
                             a
@@ -1084,6 +1137,18 @@ public class MainActivity extends Activity {
                 }
 
             } catch (Exception ignored) {
+
+                visualBg.setColor(
+                        visualColor(a)
+                );
+
+                visualBg.setCornerRadius(
+                        dp(12)
+                );
+
+                visual.setBackground(
+                        visualBg
+                );
 
                 addMedal(
                         visual,
