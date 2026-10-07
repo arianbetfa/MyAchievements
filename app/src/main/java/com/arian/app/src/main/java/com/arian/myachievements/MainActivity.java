@@ -30,6 +30,13 @@ public class MainActivity extends Activity {
     SharedPreferences prefs;
     View dragged;
 
+    /*
+     * PIN re-lock state
+     */
+    boolean appStartedOnce = false;
+    boolean wasInBackground = false;
+    boolean pinGateShowing = false;
+
     final int BG_DARK = Color.rgb(32,33,36);
     final int CARD_DARK = Color.rgb(61,65,70);
     final int DONE_DARK = Color.rgb(38,91,135);
@@ -45,6 +52,7 @@ public class MainActivity extends Activity {
 
     final int GREEN = Color.rgb(45,145,75);
 
+
     static class Achievement {
 
         String title;
@@ -56,7 +64,6 @@ public class MainActivity extends Activity {
         boolean done;
         boolean pinned;
 
-        // New customization fields
         int customColor;
         String backgroundMode;
 
@@ -140,11 +147,11 @@ public class MainActivity extends Activity {
 
             pinned = pin;
 
-            // Backwards-compatible defaults
             customColor = Color.TRANSPARENT;
             backgroundMode = "default";
         }
     }
+
 
     @Override
     public void onCreate(Bundle b) {
@@ -187,13 +194,59 @@ public class MainActivity extends Activity {
         );
 
         load();
-
         buildUi();
 
+        /*
+         * First launch / first entry.
+         */
         if (hasPin()) {
             showPinGate();
         }
+
+        appStartedOnce = true;
     }
+
+
+    @Override
+    protected void onStart() {
+
+        super.onStart();
+
+        /*
+         * When the Activity comes back after the user
+         * left the app, require the PIN again.
+         *
+         * This does NOT affect the first launch because
+         * onCreate() already handles that.
+         */
+        if (
+                appStartedOnce
+                        && wasInBackground
+                        && hasPin()
+                        && !pinGateShowing
+        ) {
+
+            showPinGate();
+        }
+
+        wasInBackground = false;
+    }
+
+
+    @Override
+    protected void onStop() {
+
+        super.onStop();
+
+        /*
+         * The Activity has gone to the background.
+         * Returning to it will require the PIN.
+         */
+        if (!isFinishing()) {
+            wasInBackground = true;
+        }
+    }
+
 
     boolean isLight() {
 
@@ -203,12 +256,14 @@ public class MainActivity extends Activity {
         );
     }
 
+
     int bg() {
 
         return isLight()
                 ? BG_LIGHT
                 : BG_DARK;
     }
+
 
     int cardColor(Achievement a) {
 
@@ -246,12 +301,14 @@ public class MainActivity extends Activity {
                 );
     }
 
+
     int panelColor() {
 
         return isLight()
                 ? PANEL_LIGHT
                 : PANEL_DARK;
     }
+
 
     int visualColor(Achievement a) {
 
@@ -264,6 +321,7 @@ public class MainActivity extends Activity {
                 : panelColor();
     }
 
+
     int primaryText() {
 
         return isLight()
@@ -274,6 +332,7 @@ public class MainActivity extends Activity {
                 )
                 : Color.WHITE;
     }
+
 
     int secondaryText() {
 
@@ -286,14 +345,19 @@ public class MainActivity extends Activity {
                 : Color.LTGRAY;
     }
 
+
     int achievementPrimaryText(Achievement a) {
 
         if (
                 a != null
                         && (
-                            "image".equals(a.backgroundMode)
+                            "image".equals(
+                                    a.backgroundMode
+                            )
                                     || (
-                                        "color".equals(a.backgroundMode)
+                                        "color".equals(
+                                                a.backgroundMode
+                                        )
                                                 && isDarkColor(
                                                         a.customColor
                                                 )
@@ -303,20 +367,31 @@ public class MainActivity extends Activity {
             return Color.WHITE;
         }
 
-        if (a.done && !isLight())
+        if (
+                a.done
+                        && !isLight()
+        ) {
             return Color.WHITE;
+        }
 
         return primaryText();
     }
 
-    int achievementSecondaryText(Achievement a) {
+
+    int achievementSecondaryText(
+            Achievement a
+    ) {
 
         if (
                 a != null
                         && (
-                            "image".equals(a.backgroundMode)
+                            "image".equals(
+                                    a.backgroundMode
+                            )
                                     || (
-                                        "color".equals(a.backgroundMode)
+                                        "color".equals(
+                                                a.backgroundMode
+                                        )
                                                 && isDarkColor(
                                                         a.customColor
                                                 )
@@ -330,7 +405,10 @@ public class MainActivity extends Activity {
             );
         }
 
-        if (a.done && !isLight()) {
+        if (
+                a.done
+                        && !isLight()
+        ) {
             return Color.rgb(
                     225,
                     240,
@@ -341,7 +419,10 @@ public class MainActivity extends Activity {
         return secondaryText();
     }
 
-    boolean isDarkColor(int color) {
+
+    boolean isDarkColor(
+            int color
+    ) {
 
         if (color == Color.TRANSPARENT)
             return false;
@@ -359,6 +440,7 @@ public class MainActivity extends Activity {
 
         return brightness < 145;
     }
+
 
     void buildUi() {
 
@@ -389,6 +471,7 @@ public class MainActivity extends Activity {
         );
 
         root.setBackgroundColor(bg());
+
 
         /*
          * TOP BAR
@@ -479,6 +562,7 @@ public class MainActivity extends Activity {
 
         root.addView(top);
 
+
         /*
          * COUNTS
          */
@@ -502,7 +586,9 @@ public class MainActivity extends Activity {
 
         root.addView(counts);
 
+
         buildCategoryBar(root);
+
 
         /*
          * LIST
@@ -550,6 +636,7 @@ public class MainActivity extends Activity {
                         -1
                 )
         );
+
 
         /*
          * ADD BUTTON
@@ -605,6 +692,7 @@ public class MainActivity extends Activity {
 
         render();
     }
+
 
     void buildCategoryBar(
             LinearLayout root
@@ -718,6 +806,7 @@ public class MainActivity extends Activity {
         updateCategoryButtons();
     }
 
+
     void updateCategoryButtons() {
 
         if (categoryBar == null)
@@ -783,7 +872,10 @@ public class MainActivity extends Activity {
         }
     }
 
-    int categoryTextColor(String c) {
+
+    int categoryTextColor(
+            String c
+    ) {
 
         if ("Platinum".equals(c))
             return isLight()
@@ -818,6 +910,7 @@ public class MainActivity extends Activity {
         return primaryText();
     }
 
+
     TextView tv(
             String s,
             float size,
@@ -847,11 +940,16 @@ public class MainActivity extends Activity {
         return t;
     }
 
-    void styleEditorText(EditText e) {
+
+    void styleEditorText(
+            EditText e
+    ) {
 
         e.setTextSize(16);
 
-        e.setTextColor(primaryText());
+        e.setTextColor(
+                primaryText()
+        );
 
         e.setHintTextColor(
                 Color.GRAY
@@ -866,13 +964,16 @@ public class MainActivity extends Activity {
 
         e.setPadding(
                 dp(4),
-                dp(7),
+                0,
                 dp(4),
-                dp(7)
+                0
         );
     }
 
-    void addPressAnimation(View v) {
+
+    void addPressAnimation(
+            View v
+    ) {
 
         v.setOnTouchListener(
                 (view, event) -> {
@@ -908,7 +1009,10 @@ public class MainActivity extends Activity {
         );
     }
 
-    boolean handleDrag(DragEvent e) {
+
+    boolean handleDrag(
+            DragEvent e
+    ) {
 
         if (
                 e.getAction()
@@ -1033,6 +1137,7 @@ public class MainActivity extends Activity {
         return true;
     }
 
+
     void finishDrag() {
 
         if (dragged != null) {
@@ -1063,6 +1168,7 @@ public class MainActivity extends Activity {
         dragged = null;
     }
 
+
     View makeCard(
             Achievement a,
             int index
@@ -1086,11 +1192,11 @@ public class MainActivity extends Activity {
                 dp(2)
         );
 
-        /*
-         * CARD BACKGROUND
-         */
+
         if (
-                "image".equals(a.backgroundMode)
+                "image".equals(
+                        a.backgroundMode
+                )
                         && a.imagePath != null
                         && !a.imagePath.isEmpty()
         ) {
@@ -1138,6 +1244,7 @@ public class MainActivity extends Activity {
                 dp(2)
         );
 
+
         /*
          * VISUAL
          */
@@ -1173,6 +1280,7 @@ public class MainActivity extends Activity {
         visual.setBackground(
                 visualBg
         );
+
 
         /*
          * IMAGE
@@ -1238,9 +1346,6 @@ public class MainActivity extends Activity {
 
                     im.setClipToOutline(true);
 
-                    /*
-                     * Slightly larger than old version
-                     */
                     FrameLayout.LayoutParams imageLp =
                             new FrameLayout.LayoutParams(
                                     dp(64),
@@ -1303,6 +1408,7 @@ public class MainActivity extends Activity {
             );
         }
 
+
         /*
          * DRAG HANDLE
          */
@@ -1351,6 +1457,7 @@ public class MainActivity extends Activity {
                 vp
         );
 
+
         /*
          * TEXT
          */
@@ -1378,9 +1485,7 @@ public class MainActivity extends Activity {
         int textSecond =
                 achievementSecondaryText(a);
 
-        /*
-         * TITLE
-         */
+
         TextView title =
                 tv(
                         a.title,
@@ -1412,9 +1517,7 @@ public class MainActivity extends Activity {
 
         title.setIncludeFontPadding(false);
 
-        /*
-         * DESCRIPTION
-         */
+
         TextView desc =
                 tv(
                         a.desc,
@@ -1473,6 +1576,7 @@ public class MainActivity extends Activity {
                 )
         );
 
+
         /*
          * ACTIONS
          */
@@ -1487,9 +1591,7 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
-        /*
-         * COMPLETE
-         */
+
         TextView done =
                 tv(
                         a.done
@@ -1509,10 +1611,6 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
-        done.setContentDescription(
-                "Toggle completed"
-        );
-
         addPressAnimation(done);
 
         done.setOnClickListener(
@@ -1526,9 +1624,7 @@ public class MainActivity extends Activity {
                 }
         );
 
-        /*
-         * PIN
-         */
+
         TextView pin =
                 tv(
                         a.pinned
@@ -1548,10 +1644,6 @@ public class MainActivity extends Activity {
                 Gravity.CENTER
         );
 
-        pin.setContentDescription(
-                "Pin achievement"
-        );
-
         addPressAnimation(pin);
 
         pin.setOnClickListener(
@@ -1565,9 +1657,7 @@ public class MainActivity extends Activity {
                 }
         );
 
-        /*
-         * DELETE
-         */
+
         TextView delete =
                 tv(
                         "🗑",
@@ -1577,10 +1667,6 @@ public class MainActivity extends Activity {
 
         delete.setGravity(
                 Gravity.CENTER
-        );
-
-        delete.setContentDescription(
-                "Delete achievement"
         );
 
         addPressAnimation(delete);
@@ -1599,6 +1685,7 @@ public class MainActivity extends Activity {
                     }
                 }
         );
+
 
         actions.addView(
                 done,
@@ -1632,9 +1719,7 @@ public class MainActivity extends Activity {
                 )
         );
 
-        /*
-         * EDIT / CUSTOMIZE
-         */
+
         card.setTag(a);
 
         addPressAnimation(card);
@@ -1650,9 +1735,7 @@ public class MainActivity extends Activity {
                 }
         );
 
-        /*
-         * DRAG
-         */
+
         card.setOnLongClickListener(
                 v -> {
 
@@ -1703,6 +1786,7 @@ public class MainActivity extends Activity {
                 }
         );
 
+
         LinearLayout.LayoutParams lp =
                 new LinearLayout.LayoutParams(
                         -1,
@@ -1720,6 +1804,7 @@ public class MainActivity extends Activity {
 
         return card;
     }
+
 
     void setCardSolidBackground(
             LinearLayout card,
@@ -1740,10 +1825,12 @@ public class MainActivity extends Activity {
         card.setBackground(bgd);
     }
 
+
     class AchievementBackgroundDrawable
             extends Drawable {
 
         Bitmap bitmap;
+
         Paint paint =
                 new Paint(
                         Paint.ANTI_ALIAS_FLAG
@@ -1770,7 +1857,9 @@ public class MainActivity extends Activity {
         }
 
         @Override
-        public void draw(Canvas canvas) {
+        public void draw(
+                Canvas canvas
+        ) {
 
             if (bitmap == null)
                 return;
@@ -1854,7 +1943,10 @@ public class MainActivity extends Activity {
         }
 
         @Override
-        public void setAlpha(int alpha) {
+        public void setAlpha(
+                int alpha
+        ) {
+
             paint.setAlpha(alpha);
         }
 
@@ -1862,14 +1954,17 @@ public class MainActivity extends Activity {
         public void setColorFilter(
                 android.graphics.ColorFilter filter
         ) {
+
             paint.setColorFilter(filter);
         }
 
         @Override
         public int getOpacity() {
+
             return PixelFormat.TRANSLUCENT;
         }
     }
+
 
     void confirmDelete(
             final int index
@@ -1904,6 +1999,7 @@ public class MainActivity extends Activity {
                 )
                 .show();
     }
+
 
     void animateDelete(
             final Achievement target
@@ -1980,6 +2076,7 @@ public class MainActivity extends Activity {
                 .start();
     }
 
+
     void addMedal(
             FrameLayout f,
             Achievement a
@@ -2005,7 +2102,10 @@ public class MainActivity extends Activity {
         );
     }
 
-    String medalEmoji(String m) {
+
+    String medalEmoji(
+            String m
+    ) {
 
         if ("Bronze".equals(m))
             return "🥉";
@@ -2019,7 +2119,10 @@ public class MainActivity extends Activity {
         return "🏆";
     }
 
-    int medalColor(String m) {
+
+    int medalColor(
+            String m
+    ) {
 
         if ("Bronze".equals(m))
             return Color.rgb(
@@ -2041,7 +2144,10 @@ public class MainActivity extends Activity {
         return CYAN;
     }
 
-    int medalBorderColor(String m) {
+
+    int medalBorderColor(
+            String m
+    ) {
 
         if ("Bronze".equals(m))
             return Color.rgb(
@@ -2067,6 +2173,7 @@ public class MainActivity extends Activity {
         );
     }
 
+
     boolean matchesFilter(
             Achievement a
     ) {
@@ -2077,12 +2184,14 @@ public class MainActivity extends Activity {
                 );
     }
 
+
     int actualIndex(
             Achievement a
     ) {
 
         return data.indexOf(a);
     }
+
 
     ArrayList<Achievement>
     visibleAchievements() {
@@ -2108,6 +2217,7 @@ public class MainActivity extends Activity {
         return out;
     }
 
+
     void render() {
 
         if (list == null)
@@ -2128,9 +2238,7 @@ public class MainActivity extends Activity {
             );
         }
 
-        /*
-         * TOTAL + COMPLETED COUNTS
-         */
+
         int bronzeTotal = 0;
         int bronzeDone = 0;
 
@@ -2142,6 +2250,7 @@ public class MainActivity extends Activity {
 
         int platinumTotal = 0;
         int platinumDone = 0;
+
 
         for (Achievement a : data) {
 
@@ -2175,6 +2284,7 @@ public class MainActivity extends Activity {
             }
         }
 
+
         counts.setText(
                 "🥉 " + bronzeTotal
                         + " - " + bronzeDone
@@ -2191,6 +2301,7 @@ public class MainActivity extends Activity {
 
         updateCategoryButtons();
     }
+
 
     void showEditor(
             final int index
@@ -2213,6 +2324,7 @@ public class MainActivity extends Activity {
                 old.imagePath
         };
 
+
         LinearLayout box =
                 new LinearLayout(this);
 
@@ -2222,10 +2334,11 @@ public class MainActivity extends Activity {
 
         box.setPadding(
                 dp(18),
-                dp(5),
+                dp(2),
                 dp(18),
                 0
         );
+
 
         /*
          * TITLE
@@ -2241,12 +2354,33 @@ public class MainActivity extends Activity {
                 old.title
         );
 
-        title.setSingleLine(false);
+        title.setSingleLine(true);
+
+        title.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
 
         styleEditorText(title);
 
+        LinearLayout.LayoutParams titleLp =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(50)
+                );
+
+        box.addView(
+                title,
+                titleLp
+        );
+
+
         /*
          * DESCRIPTION
+         *
+         * Fixed:
+         * - no gravity at the top
+         * - hint sits with the field
+         * - enough height for multiline text
          */
         EditText desc =
                 new EditText(this);
@@ -2262,15 +2396,29 @@ public class MainActivity extends Activity {
         desc.setInputType(
                 InputType.TYPE_CLASS_TEXT
                         | InputType.TYPE_TEXT_FLAG_MULTI_LINE
-        );
+                );
 
         desc.setMinLines(2);
 
+        desc.setMaxLines(3);
+
         desc.setGravity(
-                Gravity.TOP
+                Gravity.CENTER_VERTICAL
         );
 
         styleEditorText(desc);
+
+        LinearLayout.LayoutParams descLp =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(60)
+                );
+
+        box.addView(
+                desc,
+                descLp
+        );
+
 
         /*
          * MEDAL
@@ -2312,51 +2460,238 @@ public class MainActivity extends Activity {
             }
         }
 
+        LinearLayout.LayoutParams spinnerLp =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(48)
+                );
+
+        box.addView(
+                spinner,
+                spinnerLp
+        );
+
+
         /*
-         * IMAGE PREVIEW
+         * CUSTOMIZATION
          */
-        ImageView preview =
-                new ImageView(this);
+        TextView customizeTitle =
+                tv(
+                        "Customize Achievement",
+                        15,
+                        primaryText()
+                );
 
-        preview.setScaleType(
-                ImageView.ScaleType.CENTER_CROP
+        customizeTitle.setTypeface(
+                android.graphics.Typeface.create(
+                        "sans-serif-medium",
+                        android.graphics.Typeface.BOLD
+                )
         );
 
-        preview.setBackgroundColor(
-                panelColor()
+        customizeTitle.setPadding(
+                0,
+                dp(8),
+                0,
+                dp(2)
         );
 
-        preview.setAdjustViewBounds(true);
-
-        preview.setMinimumHeight(
-                dp(100)
+        box.addView(
+                customizeTitle,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(30)
+                )
         );
 
-        if (
-                chosenImage[0] != null
-                        && !chosenImage[0].isEmpty()
-        ) {
 
-            Bitmap previewBitmap =
-                    BitmapFactory.decodeFile(
-                            chosenImage[0]
+        TextView customizationHint =
+                tv(
+                        "Choose a custom color or use the achievement image as the card background.",
+                        12,
+                        secondaryText()
+                );
+
+        customizationHint.setPadding(
+                0,
+                0,
+                0,
+                dp(4)
+        );
+
+        box.addView(
+                customizationHint,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(32)
+                )
+        );
+
+
+        /*
+         * CUSTOMIZATION BUTTONS
+         *
+         * Fixed:
+         * - all 3 have exactly the same height
+         * - zero minimum width
+         * - zero internal side padding
+         * - slightly smaller text
+         * - no vertical clipping
+         */
+        LinearLayout customizationButtons =
+                new LinearLayout(this);
+
+        customizationButtons.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
+
+        customizationButtons.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
+
+        Button defaultBtn =
+                editorOptionButton(
+                        "Default"
+                );
+
+        Button colorBtn =
+                editorOptionButton(
+                        "Custom Color"
+                );
+
+        Button imageBgBtn =
+                editorOptionButton(
+                        "Image Background"
+                );
+
+
+        customizationButtons.addView(
+                defaultBtn,
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(48),
+                        1
+                )
+        );
+
+        customizationButtons.addView(
+                colorBtn,
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(48),
+                        1
+                )
+        );
+
+        customizationButtons.addView(
+                imageBgBtn,
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(48),
+                        1
+                )
+        );
+
+
+        box.addView(
+                customizationButtons,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(48)
+                )
+        );
+
+
+        TextView customizationStatus =
+                tv(
+                        "",
+                        12,
+                        secondaryText()
+                );
+
+        customizationStatus.setGravity(
+                Gravity.CENTER
+        );
+
+        customizationStatus.setPadding(
+                0,
+                dp(2),
+                0,
+                dp(2)
+        );
+
+        updateCustomizationStatus(
+                old,
+                customizationStatus
+        );
+
+        box.addView(
+                customizationStatus,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(30)
+                )
+        );
+
+
+        defaultBtn.setOnClickListener(
+                v -> {
+
+                    old.backgroundMode =
+                            "default";
+
+                    customizationStatus.setText(
+                            "Using the normal Day/Dark appearance"
                     );
 
-            if (previewBitmap != null)
-                preview.setImageBitmap(
-                        previewBitmap
-                );
-            else
-                preview.setImageResource(
-                        android.R.drawable.ic_menu_gallery
-                );
+                    customizationStatus.setTextColor(
+                            secondaryText()
+                    );
+                }
+        );
 
-        } else {
 
-            preview.setImageResource(
-                    android.R.drawable.ic_menu_gallery
-            );
-        }
+        colorBtn.setOnClickListener(
+                v -> {
+
+                    showColorPicker(
+                            old,
+                            customizationStatus
+                    );
+                }
+        );
+
+
+        imageBgBtn.setOnClickListener(
+                v -> {
+
+                    if (
+                            chosenImage[0] == null
+                                    || chosenImage[0].isEmpty()
+                    ) {
+
+                        Toast.makeText(
+                                this,
+                                "Add an image first.",
+                                Toast.LENGTH_SHORT
+                        ).show();
+
+                        return;
+                    }
+
+                    old.backgroundMode =
+                            "image";
+
+                    customizationStatus.setText(
+                            "Achievement image is used as the card background"
+                    );
+
+                    customizationStatus.setTextColor(
+                            secondaryText()
+                    );
+                }
+        );
+
 
         /*
          * IMAGE SHAPE
@@ -2377,10 +2712,19 @@ public class MainActivity extends Activity {
 
         shapeTitle.setPadding(
                 0,
-                dp(8),
+                dp(5),
                 0,
-                dp(2)
+                0
         );
+
+        box.addView(
+                shapeTitle,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(28)
+                )
+        );
+
 
         RadioGroup shapeGroup =
                 new RadioGroup(this);
@@ -2419,7 +2763,7 @@ public class MainActivity extends Activity {
                 circleOption,
                 new RadioGroup.LayoutParams(
                         0,
-                        dp(45),
+                        dp(42),
                         1
                 )
         );
@@ -2428,7 +2772,7 @@ public class MainActivity extends Activity {
                 squareOption,
                 new RadioGroup.LayoutParams(
                         0,
-                        dp(45),
+                        dp(42),
                         1
                 )
         );
@@ -2450,6 +2794,15 @@ public class MainActivity extends Activity {
             );
         }
 
+        box.addView(
+                shapeGroup,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(42)
+                )
+        );
+
+
         /*
          * PIN
          */
@@ -2468,17 +2821,79 @@ public class MainActivity extends Activity {
                 old.pinned
         );
 
+        box.addView(
+                pinBox,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(48)
+                )
+        );
+
+
         /*
-         * IMAGE BUTTONS
+         * IMAGE PREVIEW
+         */
+        ImageView preview =
+                new ImageView(this);
+
+        preview.setScaleType(
+                ImageView.ScaleType.CENTER_CROP
+        );
+
+        preview.setBackgroundColor(
+                panelColor()
+        );
+
+        preview.setAdjustViewBounds(true);
+
+        preview.setMinimumHeight(
+                dp(80)
+        );
+
+        if (
+                chosenImage[0] != null
+                        && !chosenImage[0].isEmpty()
+        ) {
+
+            Bitmap previewBitmap =
+                    BitmapFactory.decodeFile(
+                            chosenImage[0]
+                    );
+
+            if (previewBitmap != null)
+                preview.setImageBitmap(
+                        previewBitmap
+                );
+            else
+                preview.setImageResource(
+                        android.R.drawable.ic_menu_gallery
+                );
+
+        } else {
+
+            preview.setImageResource(
+                    android.R.drawable.ic_menu_gallery
+            );
+        }
+
+        box.addView(
+                preview,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(90)
+                )
+        );
+
+
+        /*
+         * ADD / CHANGE IMAGE
          */
         Button imageBtn =
-                new Button(this);
-
-        imageBtn.setText(
-                chosenImage[0].isEmpty()
-                        ? "Add image"
-                        : "Change image"
-        );
+                editorWideButton(
+                        chosenImage[0].isEmpty()
+                                ? "ADD IMAGE"
+                                : "CHANGE IMAGE"
+                );
 
         imageBtn.setOnClickListener(
                 v ->
@@ -2489,11 +2904,32 @@ public class MainActivity extends Activity {
                         )
         );
 
-        Button removeImage =
-                new Button(this);
+        box.addView(
+                imageBtn,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(46)
+                )
+        );
 
-        removeImage.setText(
-                "Remove image"
+
+        /*
+         * REMOVE IMAGE
+         *
+         * Fixed:
+         * visible, same size as Add Image,
+         * and explicitly added to the editor.
+         */
+        Button removeImage =
+                editorWideButton(
+                        "REMOVE IMAGE"
+                );
+
+        removeImage.setVisibility(
+                edit
+                        && !chosenImage[0].isEmpty()
+                        ? View.VISIBLE
+                        : View.GONE
         );
 
         removeImage.setOnClickListener(
@@ -2506,232 +2942,38 @@ public class MainActivity extends Activity {
                     );
 
                     imageBtn.setText(
-                            "Add image"
-                    );
-                }
-        );
-
-        /*
-         * =========================
-         * CUSTOMIZATION
-         * =========================
-         */
-        TextView customizeTitle =
-                tv(
-                        "Customize Achievement",
-                        15,
-                        primaryText()
-                );
-
-        customizeTitle.setTypeface(
-                android.graphics.Typeface.create(
-                        "sans-serif-medium",
-                        android.graphics.Typeface.BOLD
-                )
-        );
-
-        customizeTitle.setPadding(
-                0,
-                dp(12),
-                0,
-                dp(5)
-        );
-
-        TextView customizationHint =
-                tv(
-                        "Choose a custom color or use the achievement image as the card background.",
-                        12,
-                        secondaryText()
-                );
-
-        customizationHint.setPadding(
-                0,
-                0,
-                0,
-                dp(7)
-        );
-
-        LinearLayout customizationButtons =
-                new LinearLayout(this);
-
-        customizationButtons.setOrientation(
-                LinearLayout.HORIZONTAL
-        );
-
-        Button defaultBtn =
-                new Button(this);
-
-        defaultBtn.setText(
-                "Default"
-        );
-
-        Button colorBtn =
-                new Button(this);
-
-        colorBtn.setText(
-                "Custom Color"
-        );
-
-        Button imageBgBtn =
-                new Button(this);
-
-        imageBgBtn.setText(
-                "Image Background"
-        );
-
-        customizationButtons.addView(
-                defaultBtn,
-                new LinearLayout.LayoutParams(
-                        0,
-                        dp(48),
-                        1
-                )
-        );
-
-        customizationButtons.addView(
-                colorBtn,
-                new LinearLayout.LayoutParams(
-                        0,
-                        dp(48),
-                        1
-                )
-        );
-
-        customizationButtons.addView(
-                imageBgBtn,
-                new LinearLayout.LayoutParams(
-                        0,
-                        dp(48),
-                        1
-                )
-        );
-
-        TextView customizationStatus =
-                tv(
-                        "",
-                        12,
-                        secondaryText()
-                );
-
-        customizationStatus.setGravity(
-                Gravity.CENTER
-        );
-
-        customizationStatus.setPadding(
-                0,
-                dp(3),
-                0,
-                dp(4)
-        );
-
-        updateCustomizationStatus(
-                old,
-                customizationStatus
-        );
-
-        defaultBtn.setOnClickListener(
-                v -> {
-
-                    old.backgroundMode =
-                            "default";
-
-                    customizationStatus.setText(
-                            "Using the normal Day/Dark appearance"
+                            "ADD IMAGE"
                     );
 
-                    customizationStatus.setTextColor(
-                            secondaryText()
+                    removeImage.setVisibility(
+                            View.GONE
                     );
-                }
-        );
-
-        colorBtn.setOnClickListener(
-                v -> {
-
-                    showColorPicker(
-                            old,
-                            customizationStatus
-                    );
-                }
-        );
-
-        imageBgBtn.setOnClickListener(
-                v -> {
 
                     if (
-                            chosenImage[0] == null
-                                    || chosenImage[0].isEmpty()
+                            "image".equals(
+                                    old.backgroundMode
+                            )
                     ) {
 
-                        Toast.makeText(
-                                this,
-                                "Add an image first.",
-                                Toast.LENGTH_SHORT
-                        ).show();
+                        old.backgroundMode =
+                                "default";
 
-                        return;
+                        updateCustomizationStatus(
+                                old,
+                                customizationStatus
+                        );
                     }
-
-                    old.backgroundMode =
-                            "image";
-
-                    customizationStatus.setText(
-                            "Achievement image is used as the card background"
-                    );
-
-                    customizationStatus.setTextColor(
-                            secondaryText()
-                    );
                 }
         );
 
-        /*
-         * EDITOR ORDER
-         */
-        box.addView(title);
-
-        box.addView(desc);
-
-        box.addView(spinner);
-
         box.addView(
-                customizeTitle
-        );
-
-        box.addView(
-                customizationHint
-        );
-
-        box.addView(
-                customizationButtons
-        );
-
-        box.addView(
-                customizationStatus
-        );
-
-        box.addView(
-                shapeTitle
-        );
-
-        box.addView(
-                shapeGroup
-        );
-
-        box.addView(pinBox);
-
-        box.addView(
-                preview,
+                removeImage,
                 new LinearLayout.LayoutParams(
                         -1,
-                        dp(130)
+                        dp(46)
                 )
         );
 
-        box.addView(imageBtn);
-
-        if (edit)
-            box.addView(removeImage);
 
         AlertDialog d =
                 new AlertDialog.Builder(this)
@@ -2750,6 +2992,7 @@ public class MainActivity extends Activity {
                                 null
                         )
                         .create();
+
 
         d.setOnShowListener(
                 x -> {
@@ -2800,10 +3043,7 @@ public class MainActivity extends Activity {
                                 old.pinned =
                                         pinBox.isChecked();
 
-                                /*
-                                 * If image background was selected
-                                 * but image was removed, fall back.
-                                 */
+
                                 if (
                                         "image".equals(
                                                 old.backgroundMode
@@ -2817,6 +3057,7 @@ public class MainActivity extends Activity {
                                     old.backgroundMode =
                                             "default";
                                 }
+
 
                                 if (!edit)
                                     data.add(old);
@@ -2833,6 +3074,85 @@ public class MainActivity extends Activity {
 
         d.show();
     }
+
+
+    Button editorOptionButton(
+            String text
+    ) {
+
+        Button b =
+                new Button(this);
+
+        b.setText(text);
+
+        b.setTextSize(11);
+
+        b.setTextColor(
+                primaryText()
+        );
+
+        b.setAllCaps(false);
+
+        b.setGravity(
+                Gravity.CENTER
+        );
+
+        b.setPadding(
+                0,
+                0,
+                0,
+                0
+        );
+
+        b.setMinWidth(0);
+
+        b.setMinimumWidth(0);
+
+        b.setMinHeight(0);
+
+        b.setMinimumHeight(0);
+
+        b.setIncludeFontPadding(false);
+
+        return b;
+    }
+
+
+    Button editorWideButton(
+            String text
+    ) {
+
+        Button b =
+                new Button(this);
+
+        b.setText(text);
+
+        b.setTextSize(13);
+
+        b.setAllCaps(false);
+
+        b.setGravity(
+                Gravity.CENTER
+        );
+
+        b.setPadding(
+                0,
+                0,
+                0,
+                0
+        );
+
+        b.setMinHeight(0);
+
+        b.setMinimumHeight(0);
+
+        b.setTextColor(
+                primaryText()
+        );
+
+        return b;
+    }
+
 
     void updateCustomizationStatus(
             Achievement a,
@@ -2867,6 +3187,7 @@ public class MainActivity extends Activity {
         }
     }
 
+
     void showColorPicker(
             Achievement a,
             TextView status
@@ -2895,6 +3216,7 @@ public class MainActivity extends Activity {
                 Color.blue(startColor)
         };
 
+
         LinearLayout box =
                 new LinearLayout(this);
 
@@ -2908,6 +3230,7 @@ public class MainActivity extends Activity {
                 dp(18),
                 dp(4)
         );
+
 
         View preview =
                 new View(this);
@@ -2939,6 +3262,7 @@ public class MainActivity extends Activity {
                 )
         );
 
+
         TextView label =
                 tv(
                         "",
@@ -2958,6 +3282,7 @@ public class MainActivity extends Activity {
                 )
         );
 
+
         SeekBar red =
                 new SeekBar(this);
 
@@ -2974,6 +3299,7 @@ public class MainActivity extends Activity {
         red.setProgress(rgb[0]);
         green.setProgress(rgb[1]);
         blue.setProgress(rgb[2]);
+
 
         box.addView(
                 colorSliderLabel("Red")
@@ -2992,6 +3318,7 @@ public class MainActivity extends Activity {
         );
 
         box.addView(blue);
+
 
         SeekBar.OnSeekBarChangeListener listener =
                 new SeekBar.OnSeekBarChangeListener() {
@@ -3018,7 +3345,9 @@ public class MainActivity extends Activity {
                                         rgb[2]
                                 );
 
-                        previewBg.setColor(color);
+                        previewBg.setColor(
+                                color
+                        );
 
                         label.setText(
                                 "RGB "
@@ -3043,6 +3372,7 @@ public class MainActivity extends Activity {
                     }
                 };
 
+
         red.setOnSeekBarChangeListener(
                 listener
         );
@@ -3055,6 +3385,7 @@ public class MainActivity extends Activity {
                 listener
         );
 
+
         label.setText(
                 "RGB "
                         + rgb[0]
@@ -3063,6 +3394,7 @@ public class MainActivity extends Activity {
                         + ", "
                         + rgb[2]
         );
+
 
         AlertDialog dialog =
                 new AlertDialog.Builder(this)
@@ -3079,6 +3411,7 @@ public class MainActivity extends Activity {
                                 null
                         )
                         .create();
+
 
         dialog.setOnShowListener(
                 x -> {
@@ -3115,6 +3448,7 @@ public class MainActivity extends Activity {
         dialog.show();
     }
 
+
     TextView colorSliderLabel(
             String text
     ) {
@@ -3135,6 +3469,7 @@ public class MainActivity extends Activity {
 
         return t;
     }
+
 
     void pickImage(
             String[] chosen,
@@ -3165,11 +3500,13 @@ public class MainActivity extends Activity {
         pendingImageButton = btn;
     }
 
+
     String[] pendingImageHolder;
 
     ImageView pendingPreview;
 
     Button pendingImageButton;
+
 
     @Override
     protected void onActivityResult(
@@ -3218,6 +3555,7 @@ public class MainActivity extends Activity {
         }
     }
 
+
     void showCropDialog(
             Bitmap source
     ) {
@@ -3250,6 +3588,7 @@ public class MainActivity extends Activity {
                 )
         );
 
+
         TextView hint =
                 tv(
                         "Crop amount",
@@ -3268,6 +3607,7 @@ public class MainActivity extends Activity {
                         dp(36)
                 )
         );
+
 
         SeekBar seek =
                 new SeekBar(this);
@@ -3309,6 +3649,7 @@ public class MainActivity extends Activity {
 
         box.addView(seek);
 
+
         AlertDialog d =
                 new AlertDialog.Builder(this)
                         .setTitle(
@@ -3327,6 +3668,7 @@ public class MainActivity extends Activity {
                                 null
                         )
                         .create();
+
 
         d.setOnShowListener(
                 x ->
@@ -3371,7 +3713,7 @@ public class MainActivity extends Activity {
 
                                         pendingImageButton
                                                 .setText(
-                                                        "Change image"
+                                                        "CHANGE IMAGE"
                                                 );
 
                                         d.dismiss();
@@ -3393,6 +3735,7 @@ public class MainActivity extends Activity {
         d.show();
     }
 
+
     class CropView extends View {
 
         Bitmap bmp;
@@ -3410,6 +3753,7 @@ public class MainActivity extends Activity {
         float offsetX;
         float offsetY;
 
+
         CropView(
                 Context c,
                 Bitmap b
@@ -3422,6 +3766,7 @@ public class MainActivity extends Activity {
             p.setFilterBitmap(true);
         }
 
+
         void setCropFraction(
                 float f
         ) {
@@ -3430,6 +3775,7 @@ public class MainActivity extends Activity {
 
             invalidate();
         }
+
 
         protected void onDraw(
                 Canvas c
@@ -3473,6 +3819,7 @@ public class MainActivity extends Activity {
                     p
             );
 
+
             float size =
                     Math.min(
                             getWidth(),
@@ -3487,6 +3834,7 @@ public class MainActivity extends Activity {
                     getHeight() / 2f
                             + offsetY;
 
+
             p.setColor(
                     0x99000000
             );
@@ -3494,6 +3842,7 @@ public class MainActivity extends Activity {
             p.setStyle(
                     Paint.Style.FILL
             );
+
 
             c.drawRect(
                     0,
@@ -3533,6 +3882,7 @@ public class MainActivity extends Activity {
                     p
             );
 
+
             p.setColor(
                     Color.WHITE
             );
@@ -3558,6 +3908,7 @@ public class MainActivity extends Activity {
             );
         }
 
+
         public boolean onTouchEvent(
                 android.view.MotionEvent e
         ) {
@@ -3573,6 +3924,7 @@ public class MainActivity extends Activity {
 
                 return true;
             }
+
 
             if (
                     e.getAction()
@@ -3596,6 +3948,7 @@ public class MainActivity extends Activity {
 
             return true;
         }
+
 
         Bitmap getCroppedBitmap() {
 
@@ -3623,6 +3976,7 @@ public class MainActivity extends Activity {
                     (getHeight() - h) / 2
                             + offsetY;
 
+
             float size =
                     Math.min(
                             getWidth(),
@@ -3636,6 +3990,7 @@ public class MainActivity extends Activity {
             float cy =
                     getHeight() / 2f
                             + offsetY;
+
 
             float sx =
                     (
@@ -3653,6 +4008,7 @@ public class MainActivity extends Activity {
 
             float ss =
                     size / scale;
+
 
             sx =
                     Math.max(
@@ -3672,6 +4028,7 @@ public class MainActivity extends Activity {
                             )
                     );
 
+
             return Bitmap.createBitmap(
                     bmp,
                     (int) sx,
@@ -3687,6 +4044,7 @@ public class MainActivity extends Activity {
             );
         }
     }
+
 
     void showMenu(
             View anchor
@@ -3776,6 +4134,7 @@ public class MainActivity extends Activity {
         pm.show();
     }
 
+
     void showSideMenu() {
 
         final Dialog dialog =
@@ -3784,6 +4143,7 @@ public class MainActivity extends Activity {
         dialog.requestWindowFeature(
                 Window.FEATURE_NO_TITLE
         );
+
 
         LinearLayout box =
                 new LinearLayout(this);
@@ -3798,6 +4158,7 @@ public class MainActivity extends Activity {
                 dp(20),
                 dp(18)
         );
+
 
         GradientDrawable panel =
                 new GradientDrawable();
@@ -3816,6 +4177,7 @@ public class MainActivity extends Activity {
         );
 
         box.setBackground(panel);
+
 
         TextView h =
                 tv(
@@ -3839,6 +4201,7 @@ public class MainActivity extends Activity {
                 )
         );
 
+
         TextView sub =
                 tv(
                         "Manage your achievements",
@@ -3857,6 +4220,7 @@ public class MainActivity extends Activity {
                         dp(34)
                 )
         );
+
 
         View line =
                 new View(this);
@@ -3893,9 +4257,7 @@ public class MainActivity extends Activity {
                 lineLp
         );
 
-        /*
-         * SETTINGS
-         */
+
         TextView settings =
                 rowButton(
                         "⚙",
@@ -3931,9 +4293,7 @@ public class MainActivity extends Activity {
                 sp
         );
 
-        /*
-         * ADD
-         */
+
         TextView add =
                 rowButton(
                         "＋",
@@ -3969,9 +4329,7 @@ public class MainActivity extends Activity {
                 ap
         );
 
-        /*
-         * CLOSE
-         */
+
         TextView close =
                 rowButton(
                         "×",
@@ -3995,11 +4353,13 @@ public class MainActivity extends Activity {
                 )
         );
 
+
         dialog.setContentView(box);
 
         dialog.setCanceledOnTouchOutside(true);
 
         dialog.setCancelable(true);
+
 
         dialog.setOnShowListener(
                 x -> {
@@ -4036,6 +4396,7 @@ public class MainActivity extends Activity {
                                 WindowManager.LayoutParams.FLAG_DIM_BEHIND
                         );
 
+
                         box.setTranslationX(
                                 -dp(320)
                         );
@@ -4052,11 +4413,13 @@ public class MainActivity extends Activity {
                                 )
                                 .start();
 
+
                         View[] items = {
                                 settings,
                                 add,
                                 close
                         };
+
 
                         for (
                                 int i = 0;
@@ -4107,6 +4470,7 @@ public class MainActivity extends Activity {
         dialog.show();
     }
 
+
     void animateSideMenuClose(
             final View box,
             final Dialog dialog,
@@ -4131,6 +4495,7 @@ public class MainActivity extends Activity {
                 )
                 .start();
     }
+
 
     TextView rowButton(
             String icon,
@@ -4167,6 +4532,7 @@ public class MainActivity extends Activity {
 
         addPressAnimation(r);
 
+
         GradientDrawable g =
                 new GradientDrawable();
 
@@ -4189,6 +4555,7 @@ public class MainActivity extends Activity {
         return r;
     }
 
+
     void showSettings() {
 
         LinearLayout box =
@@ -4204,6 +4571,7 @@ public class MainActivity extends Activity {
                 dp(18),
                 0
         );
+
 
         Button theme =
                 new Button(this);
@@ -4230,6 +4598,7 @@ public class MainActivity extends Activity {
 
         box.addView(theme);
 
+
         Button pin =
                 new Button(this);
 
@@ -4245,6 +4614,7 @@ public class MainActivity extends Activity {
 
         box.addView(pin);
 
+
         new AlertDialog.Builder(this)
                 .setTitle(
                         "Settings"
@@ -4257,6 +4627,7 @@ public class MainActivity extends Activity {
                 .show();
     }
 
+
     boolean hasPin() {
 
         return prefs.getString(
@@ -4264,6 +4635,7 @@ public class MainActivity extends Activity {
                 ""
         ).length() > 0;
     }
+
 
     void showPinSettings() {
 
@@ -4312,6 +4684,7 @@ public class MainActivity extends Activity {
         }
     }
 
+
     void savePin(
             String p
     ) {
@@ -4344,37 +4717,27 @@ public class MainActivity extends Activity {
         ).show();
     }
 
+
     interface PinCallback {
         void done(String pin);
     }
 
+
     void showPinGate() {
+
+        if (pinGateShowing)
+            return;
+
+        pinGateShowing = true;
 
         showPinPad(
                 "Enter PIN",
                 true,
                 p -> {
-
-                    if (
-                            p.equals(
-                                    prefs.getString(
-                                            "pin",
-                                            ""
-                                    )
-                            )
-                    ) {
-
-                    } else {
-
-                        Toast.makeText(
-                                this,
-                                "Wrong PIN",
-                                Toast.LENGTH_SHORT
-                        ).show();
-                    }
                 }
         );
     }
+
 
     void showPinPad(
             String title,
@@ -4388,6 +4751,7 @@ public class MainActivity extends Activity {
         dialog.requestWindowFeature(
                 Window.FEATURE_NO_TITLE
         );
+
 
         LinearLayout root =
                 new LinearLayout(this);
@@ -4411,6 +4775,7 @@ public class MainActivity extends Activity {
                 bg()
         );
 
+
         TextView heading =
                 tv(
                         title,
@@ -4429,6 +4794,7 @@ public class MainActivity extends Activity {
                         dp(60)
                 )
         );
+
 
         TextView dots =
                 tv(
@@ -4449,8 +4815,10 @@ public class MainActivity extends Activity {
                 )
         );
 
+
         final StringBuilder pin =
                 new StringBuilder();
+
 
         View.OnClickListener digit =
                 v -> {
@@ -4469,11 +4837,13 @@ public class MainActivity extends Activity {
                     }
                 };
 
+
         int[][] nums = {
                 {1,2,3},
                 {4,5,6},
                 {7,8,9}
         };
+
 
         for (int[] row : nums) {
 
@@ -4507,12 +4877,14 @@ public class MainActivity extends Activity {
             root.addView(r);
         }
 
+
         LinearLayout last =
                 new LinearLayout(this);
 
         last.setGravity(
                 Gravity.CENTER
         );
+
 
         Button clear =
                 pinButton("C");
@@ -4529,12 +4901,14 @@ public class MainActivity extends Activity {
                 }
         );
 
+
         Button zero =
                 pinButton("0");
 
         zero.setOnClickListener(
                 digit
         );
+
 
         Button back =
                 pinButton("⌫");
@@ -4553,6 +4927,7 @@ public class MainActivity extends Activity {
                     );
                 }
         );
+
 
         last.addView(
                 clear,
@@ -4580,6 +4955,7 @@ public class MainActivity extends Activity {
 
         root.addView(last);
 
+
         Button action =
                 pinButton(
                         gate
@@ -4601,8 +4977,10 @@ public class MainActivity extends Activity {
                         return;
                     }
 
+
                     String entered =
                             pin.toString();
+
 
                     if (gate) {
 
@@ -4614,6 +4992,10 @@ public class MainActivity extends Activity {
                                         )
                                 )
                         ) {
+
+                            pinGateShowing = false;
+
+                            wasInBackground = false;
 
                             dialog.dismiss();
 
@@ -4644,6 +5026,7 @@ public class MainActivity extends Activity {
                 }
         );
 
+
         LinearLayout.LayoutParams ap =
                 new LinearLayout.LayoutParams(
                         dp(250),
@@ -4662,11 +5045,22 @@ public class MainActivity extends Activity {
                 ap
         );
 
+
         dialog.setContentView(root);
 
         dialog.setCancelable(!gate);
 
         dialog.setCanceledOnTouchOutside(false);
+
+
+        dialog.setOnDismissListener(
+                d -> {
+
+                    if (gate)
+                        pinGateShowing = false;
+                }
+        );
+
 
         dialog.setOnShowListener(
                 x -> {
@@ -4700,7 +5094,9 @@ public class MainActivity extends Activity {
                 }
         );
 
+
         dialog.show();
+
 
         Window w =
                 dialog.getWindow();
@@ -4732,6 +5128,7 @@ public class MainActivity extends Activity {
         }
     }
 
+
     Button pinButton(
             String s
     ) {
@@ -4760,6 +5157,7 @@ public class MainActivity extends Activity {
         return b;
     }
 
+
     void updatePinDots(
             TextView t,
             int n
@@ -4775,6 +5173,7 @@ public class MainActivity extends Activity {
                 s.toString().trim()
         );
     }
+
 
     void saveOrderFromViews() {
 
@@ -4799,8 +5198,10 @@ public class MainActivity extends Activity {
                 );
         }
 
+
         if (visible.isEmpty())
             return;
+
 
         ArrayList<Integer> slots =
                 new ArrayList<>();
@@ -4820,6 +5221,7 @@ public class MainActivity extends Activity {
                 slots.add(i);
             }
         }
+
 
         if (
                 slots.size()
@@ -4841,6 +5243,7 @@ public class MainActivity extends Activity {
 
         save();
     }
+
 
     void save() {
 
@@ -4889,10 +5292,6 @@ public class MainActivity extends Activity {
                         a.pinned
                 );
 
-                /*
-                 * New fields.
-                 * Old Achievement JSON remains compatible.
-                 */
                 o.put(
                         "customColor",
                         a.customColor
@@ -4909,6 +5308,7 @@ public class MainActivity extends Activity {
         } catch (Exception ignored) {
         }
 
+
         prefs.edit()
                 .putString(
                         "items",
@@ -4916,6 +5316,7 @@ public class MainActivity extends Activity {
                 )
                 .apply();
     }
+
 
     void load() {
 
@@ -4928,10 +5329,12 @@ public class MainActivity extends Activity {
         if (raw.length() == 0)
             return;
 
+
         try {
 
             JSONArray a =
                     new JSONArray(raw);
+
 
             for (
                     int i = 0;
@@ -4941,6 +5344,7 @@ public class MainActivity extends Activity {
 
                 JSONObject o =
                         a.getJSONObject(i);
+
 
                 Achievement item =
                         new Achievement(
@@ -4972,21 +5376,20 @@ public class MainActivity extends Activity {
                                 )
                         );
 
-                /*
-                 * These are optional so old saved
-                 * Achievements load exactly as before.
-                 */
+
                 item.customColor =
                         o.optInt(
                                 "customColor",
                                 Color.TRANSPARENT
                         );
 
+
                 item.backgroundMode =
                         o.optString(
                                 "backgroundMode",
                                 "default"
                         );
+
 
                 if (
                         item.backgroundMode == null
@@ -4997,6 +5400,7 @@ public class MainActivity extends Activity {
                             "default";
                 }
 
+
                 data.add(item);
             }
 
@@ -5004,7 +5408,10 @@ public class MainActivity extends Activity {
         }
     }
 
-    int dp(int x) {
+
+    int dp(
+            int x
+    ) {
 
         return (int) (
                 x
