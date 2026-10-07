@@ -4,7 +4,7 @@ import android.app.*;
 import android.os.Bundle;
 import android.content.*;
 import android.graphics.*;
-import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.*;
 import android.net.Uri;
 import android.view.*;
 import android.view.animation.*;
@@ -26,8 +26,8 @@ public class MainActivity extends Activity {
     String currentFilter = "All";
 
     ArrayList<Achievement> data = new ArrayList<>();
-
     SharedPreferences prefs;
+
     View dragged;
 
     final int BG_DARK = Color.rgb(32,33,36);
@@ -42,144 +42,80 @@ public class MainActivity extends Activity {
     final int DONE_LIGHT = Color.rgb(211,239,216);
     final int PANEL_LIGHT = Color.rgb(232,234,238);
     final int DONE_PANEL_LIGHT = Color.rgb(191,226,198);
-
     final int GREEN = Color.rgb(45,145,75);
 
-    static class Achievement {
+    // ---------------------------------------------------------
+    // ACHIEVEMENT
+    // ---------------------------------------------------------
 
+    static class Achievement {
         String title;
         String desc;
         String medal;
         String imagePath;
         String imageShape;
-
         boolean done;
         boolean pinned;
 
-        Achievement(
-                String t,
-                String d,
-                String m,
-                boolean c
-        ) {
-            this(
-                    t,
-                    d,
-                    m,
-                    c,
-                    "",
-                    "circle",
-                    false
-            );
+        // New customization
+        int customColor;
+        String backgroundMode; // default / color / image
+
+        Achievement(String t, String d, String m, boolean c) {
+            this(t,d,m,c,null,"circle",false);
         }
 
-        Achievement(
-                String t,
-                String d,
-                String m,
-                boolean c,
-                String img
-        ) {
-            this(
-                    t,
-                    d,
-                    m,
-                    c,
-                    img,
-                    "circle",
-                    false
-            );
+        Achievement(String t, String d, String m, boolean c, String img) {
+            this(t,d,m,c,img,"circle",false);
         }
 
-        Achievement(
-                String t,
-                String d,
-                String m,
-                boolean c,
-                String img,
-                boolean pin
-        ) {
-            this(
-                    t,
-                    d,
-                    m,
-                    c,
-                    img,
-                    "circle",
-                    pin
-            );
+        Achievement(String t, String d, String m, boolean c, String img, boolean pin) {
+            this(t,d,m,c,img,"circle",pin);
         }
 
-        Achievement(
-                String t,
-                String d,
-                String m,
-                boolean c,
-                String img,
-                String shape,
-                boolean pin
-        ) {
+        Achievement(String t, String d, String m, boolean c,
+                    String img, String shape, boolean pin) {
+
             title = t;
             desc = d;
             medal = m;
             done = c;
-
-            imagePath =
-                    img == null
-                            ? ""
-                            : img;
-
-            imageShape =
-                    shape == null
-                            ? "circle"
-                            : shape;
-
+            imagePath = img == null ? "" : img;
+            imageShape = shape == null ? "circle" : shape;
             pinned = pin;
+
+            customColor = 0;
+            backgroundMode = "default";
         }
     }
 
+    // ---------------------------------------------------------
+    // LIFECYCLE
+    // ---------------------------------------------------------
+
     @Override
-    public void onCreate(Bundle b) {
+    protected void onCreate(Bundle savedInstanceState) {
+        prefs = getSharedPreferences("achievements", MODE_PRIVATE);
 
-        prefs =
-                getSharedPreferences(
-                        "achievements",
-                        MODE_PRIVATE
-                );
+        if (prefs.getBoolean("lightMode", false)) {
+            setTheme(android.R.style.Theme_Material_Light_NoActionBar);
+        } else {
+            setTheme(android.R.style.Theme_Material_NoActionBar);
+        }
 
-        setTheme(
-                prefs.getBoolean(
-                        "lightMode",
-                        false
-                )
-                        ? R.style.AppTheme_Light
-                        : R.style.AppTheme
-        );
-
-        super.onCreate(b);
+        super.onCreate(savedInstanceState);
 
         getWindow().setStatusBarColor(
-                isLight()
-                        ? BG_LIGHT
-                        : BG_DARK
+                prefs.getBoolean("lightMode", false)
+                        ? BG_LIGHT : BG_DARK
         );
 
         getWindow().setNavigationBarColor(
-                isLight()
-                        ? Color.rgb(
-                                230,
-                                232,
-                                235
-                        )
-                        : Color.rgb(
-                                23,
-                                24,
-                                26
-                        )
+                prefs.getBoolean("lightMode", false)
+                        ? BG_LIGHT : BG_DARK
         );
 
         load();
-
         buildUi();
 
         if (hasPin()) {
@@ -187,346 +123,292 @@ public class MainActivity extends Activity {
         }
     }
 
-    boolean isLight() {
+    // ---------------------------------------------------------
+    // COLORS
+    // ---------------------------------------------------------
 
-        return prefs.getBoolean(
-                "lightMode",
-                false
-        );
+    boolean isLight() {
+        return prefs.getBoolean("lightMode", false);
     }
 
     int bg() {
-
-        return isLight()
-                ? BG_LIGHT
-                : BG_DARK;
+        return isLight() ? BG_LIGHT : BG_DARK;
     }
 
     int cardColor(Achievement a) {
 
-        return a.done
-                ? (
-                    isLight()
-                            ? DONE_LIGHT
-                            : DONE_DARK
-                )
-                : (
-                    isLight()
-                            ? CARD_LIGHT
-                            : CARD_DARK
-                );
+        if ("color".equals(a.backgroundMode) && a.customColor != 0) {
+            return a.customColor;
+        }
+
+        if ("image".equals(a.backgroundMode) && a.imagePath != null
+                && !a.imagePath.isEmpty()) {
+            return Color.TRANSPARENT;
+        }
+
+        if (a.done) {
+            return isLight() ? DONE_LIGHT : DONE_DARK;
+        }
+
+        return isLight() ? CARD_LIGHT : CARD_DARK;
     }
 
     int panelColor() {
-
-        return isLight()
-                ? PANEL_LIGHT
-                : PANEL_DARK;
+        return isLight() ? PANEL_LIGHT : PANEL_DARK;
     }
 
     int visualColor(Achievement a) {
 
-        return a.done
-                ? (
-                    isLight()
-                            ? DONE_PANEL_LIGHT
-                            : DONE_PANEL_DARK
-                )
-                : panelColor();
+        if ("Platinum".equals(a.medal))
+            return Color.rgb(55,85,130);
+
+        if ("Gold".equals(a.medal))
+            return Color.rgb(170,135,25);
+
+        if ("Silver".equals(a.medal))
+            return Color.rgb(145,150,158);
+
+        return Color.rgb(135,85,55);
     }
 
     int primaryText() {
-
-        return isLight()
-                ? Color.rgb(
-                        30,
-                        31,
-                        34
-                )
-                : Color.WHITE;
+        return isLight() ? Color.rgb(25,25,28) : Color.WHITE;
     }
 
     int secondaryText() {
-
-        return isLight()
-                ? Color.rgb(
-                        85,
-                        87,
-                        92
-                )
-                : Color.LTGRAY;
+        return isLight() ? Color.rgb(85,88,95) : Color.rgb(210,212,216);
     }
+
+    boolean isDarkColor(int color) {
+        int r = Color.red(color);
+        int g = Color.green(color);
+        int b = Color.blue(color);
+
+        double brightness =
+                (0.299 * r) +
+                (0.587 * g) +
+                (0.114 * b);
+
+        return brightness < 145;
+    }
+
+    int achievementTextColor(Achievement a) {
+
+        if ("color".equals(a.backgroundMode)
+                && a.customColor != 0) {
+
+            return isDarkColor(a.customColor)
+                    ? Color.WHITE
+                    : Color.rgb(25,25,25);
+        }
+
+        if ("image".equals(a.backgroundMode)) {
+            return Color.WHITE;
+        }
+
+        return primaryText();
+    }
+
+    int achievementSecondaryColor(Achievement a) {
+
+        if ("color".equals(a.backgroundMode)
+                && a.customColor != 0) {
+
+            return isDarkColor(a.customColor)
+                    ? Color.rgb(235,235,235)
+                    : Color.rgb(70,70,70);
+        }
+
+        if ("image".equals(a.backgroundMode)) {
+            return Color.WHITE;
+        }
+
+        return secondaryText();
+    }
+
+    // ---------------------------------------------------------
+    // UI
+    // ---------------------------------------------------------
 
     void buildUi() {
 
-        FrameLayout frame =
-                new FrameLayout(this);
-
+        FrameLayout frame = new FrameLayout(this);
         frame.setBackgroundColor(bg());
 
-        frame.setOnApplyWindowInsetsListener(
-                (v, insets) -> {
+        frame.setFitsSystemWindows(true);
 
-                    v.setPadding(
-                            0,
-                            insets.getSystemWindowInsetTop(),
-                            0,
-                            insets.getSystemWindowInsetBottom()
-                    );
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(8),dp(5),dp(8),0);
 
-                    return insets;
-                }
-        );
+        frame.addView(root,
+                new FrameLayout.LayoutParams(
+                        -1,-1
+                ));
 
-        LinearLayout root =
-                new LinearLayout(this);
+        // TOP BAR
+        LinearLayout top = new LinearLayout(this);
+        top.setGravity(Gravity.CENTER_VERTICAL);
 
-        root.setOrientation(
-                LinearLayout.VERTICAL
-        );
-
-        root.setBackgroundColor(bg());
-
-        /*
-         * TOP BAR
-         */
-        LinearLayout top =
-                new LinearLayout(this);
-
-        top.setGravity(
-                Gravity.CENTER_VERTICAL
-        );
-
-        top.setPadding(
-                dp(10),
-                dp(5),
-                dp(8),
-                dp(3)
-        );
-
-        TextView menu =
-                tv(
-                        "☰",
-                        30,
-                        primaryText()
-                );
-
-        menu.setGravity(
-                Gravity.CENTER
-        );
-
+        TextView menu = tv("☰",24,true);
+        menu.setGravity(Gravity.CENTER);
+        menu.setOnClickListener(v -> showSideMenu());
         addPressAnimation(menu);
 
-        menu.setOnClickListener(
-                v -> showSideMenu()
-        );
+        top.addView(menu,
+                new LinearLayout.LayoutParams(dp(48),dp(48)));
 
-        top.addView(
-                menu,
+        screenTitle = tv("My Achievements",21,true);
+        screenTitle.setTextColor(primaryText());
+
+        top.addView(screenTitle,
                 new LinearLayout.LayoutParams(
-                        dp(50),
-                        dp(50)
-                )
-        );
+                        0,dp(48),1
+                ));
 
-        screenTitle =
-                tv(
-                        "All Achievements",
-                        27,
-                        primaryText()
-                );
-
-        screenTitle.setGravity(
-                Gravity.CENTER_VERTICAL
-        );
-
-        top.addView(
-                screenTitle,
-                new LinearLayout.LayoutParams(
-                        0,
-                        dp(50),
-                        1
-                )
-        );
-
-        TextView more =
-                tv(
-                        "⋮",
-                        32,
-                        primaryText()
-                );
-
-        more.setGravity(
-                Gravity.CENTER
-        );
-
+        TextView more = tv("⋮",27,true);
+        more.setGravity(Gravity.CENTER);
+        more.setOnClickListener(v -> showMenu());
         addPressAnimation(more);
 
-        more.setOnClickListener(
-                v -> showMenu(more)
-        );
-
-        top.addView(
-                more,
-                new LinearLayout.LayoutParams(
-                        dp(45),
-                        dp(50)
-                )
-        );
+        top.addView(more,
+                new LinearLayout.LayoutParams(dp(48),dp(48)));
 
         root.addView(top);
 
-        /*
-         * COUNTS
-         */
-        counts =
-                tv(
-                        "",
-                        17,
-                        primaryText()
-                );
+        // COUNTS
+        counts = tv("",14,true);
+        counts.setGravity(Gravity.CENTER);
+        counts.setPadding(0,0,0,dp(5));
 
-        counts.setGravity(
-                Gravity.CENTER
-        );
+        root.addView(counts,
+                new LinearLayout.LayoutParams(
+                        -1,dp(32)
+                ));
 
-        counts.setPadding(
-                0,
-                0,
-                0,
-                dp(3)
-        );
+        // CATEGORIES
+        categoryBar = new LinearLayout(this);
+        categoryBar.setGravity(Gravity.CENTER_VERTICAL);
+        categoryBar.setPadding(0,0,0,dp(3));
 
-        root.addView(counts);
+        root.addView(categoryBar,
+                new LinearLayout.LayoutParams(
+                        -1,dp(48)
+                ));
 
-        buildCategoryBar(root);
+        buildCategoryBar();
 
-        /*
-         * LIST
-         */
-        ScrollView scroll =
-                new ScrollView(this);
-
+        // LIST
+        ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
 
-        scroll.setBackgroundColor(bg());
-
-        list =
-                new LinearLayout(this);
-
-        list.setOrientation(
-                LinearLayout.VERTICAL
-        );
-
-        list.setPadding(
-                dp(8),
-                dp(1),
-                dp(8),
-                dp(72)
-        );
-
-        list.setOnDragListener(
-                (v, e) -> handleDrag(e)
-        );
+        list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(dp(8),dp(2),dp(8),dp(78));
 
         scroll.addView(list);
 
-        root.addView(
-                scroll,
+        root.addView(scroll,
                 new LinearLayout.LayoutParams(
-                        -1,
-                        0,
-                        1
-                )
-        );
+                        -1,0,1
+                ));
 
-        frame.addView(
-                root,
-                new FrameLayout.LayoutParams(
-                        -1,
-                        -1
-                )
-        );
+        // FAB
+        TextView add = tv("+",30,true);
+        add.setGravity(Gravity.CENTER);
+        add.setTextColor(Color.WHITE);
 
-        /*
-         * ADD BUTTON
-         */
-        TextView add =
-                tv(
-                        "+",
-                        34,
-                        Color.WHITE
-                );
+        GradientDrawable addBg =
+                rounded(GREEN,18);
 
-        add.setGravity(
-                Gravity.CENTER
-        );
-
-        GradientDrawable fab =
-                new GradientDrawable();
-
-        fab.setColor(CYAN);
-
-        fab.setShape(
-                GradientDrawable.OVAL
-        );
-
-        add.setBackground(fab);
-
+        add.setBackground(addBg);
         add.setElevation(dp(8));
 
+        add.setOnClickListener(v -> showEditor(-1));
         addPressAnimation(add);
-
-        add.setOnClickListener(
-                v -> showEditor(-1)
-        );
 
         FrameLayout.LayoutParams fp =
                 new FrameLayout.LayoutParams(
-                        dp(62),
-                        dp(62),
-                        Gravity.RIGHT
-                                | Gravity.BOTTOM
+                        dp(62),dp(62),
+                        Gravity.BOTTOM | Gravity.RIGHT
                 );
 
-        fp.setMargins(
-                0,
-                0,
-                dp(18),
-                dp(16)
-        );
+        fp.setMargins(0,0,dp(18),dp(18));
 
-        frame.addView(add, fp);
+        frame.addView(add,fp);
 
         setContentView(frame);
 
         render();
     }
 
-    void buildCategoryBar(
-            LinearLayout root
-    ) {
+    TextView tv(String text, float size, boolean bold) {
 
-        HorizontalScrollView hsv =
-                new HorizontalScrollView(this);
+        TextView t = new TextView(this);
 
-        hsv.setHorizontalScrollBarEnabled(false);
+        t.setText(text);
+        t.setTextSize(size);
 
-        categoryBar =
-                new LinearLayout(this);
-
-        categoryBar.setGravity(
-                Gravity.CENTER_VERTICAL
+        t.setTypeface(
+                Typeface.create(
+                        "sans-serif",
+                        bold
+                                ? Typeface.BOLD
+                                : Typeface.NORMAL
+                )
         );
 
-        categoryBar.setPadding(
-                dp(8),
-                0,
-                dp(8),
-                dp(7)
-        );
+        t.setTextColor(primaryText());
 
-        String[] cats = {
+        return t;
+    }
+
+    GradientDrawable rounded(int color, float radius) {
+
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(color);
+        g.setCornerRadius(dp((int)radius));
+
+        return g;
+    }
+
+    void addPressAnimation(View v) {
+
+        v.setOnTouchListener((view,event) -> {
+
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+
+                view.animate()
+                        .scaleX(.94f)
+                        .scaleY(.94f)
+                        .setDuration(80)
+                        .start();
+
+            } else if (
+                    event.getAction() == MotionEvent.ACTION_UP ||
+                    event.getAction() == MotionEvent.ACTION_CANCEL
+            ) {
+
+                view.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(100)
+                        .start();
+            }
+
+            return false;
+        });
+    }
+
+    // ---------------------------------------------------------
+    // CATEGORY BAR
+    // ---------------------------------------------------------
+
+    void buildCategoryBar() {
+
+        categoryBar.removeAllViews();
+
+        String[] names = {
                 "All",
                 "Platinum",
                 "Gold",
@@ -534,83 +416,29 @@ public class MainActivity extends Activity {
                 "Bronze"
         };
 
-        for (String c : cats) {
+        for (String name : names) {
 
-            TextView b =
-                    tv(
-                            c,
-                            14,
-                            categoryTextColor(c)
-                    );
+            TextView b = tv(name,12,true);
+            b.setGravity(Gravity.CENTER);
 
-            b.setGravity(
-                    Gravity.CENTER
-            );
+            b.setOnClickListener(v -> {
 
-            b.setTypeface(
-                    android.graphics.Typeface.create(
-                            "sans-serif-medium",
-                            android.graphics.Typeface.NORMAL
-                    )
-            );
+                currentFilter = name;
+                render();
 
-            b.setPadding(
-                    dp(12),
-                    0,
-                    dp(12),
-                    0
-            );
-
-            b.setTag(c);
+            });
 
             addPressAnimation(b);
 
-            b.setOnClickListener(
-                    v -> {
-
-                        currentFilter =
-                                (String) v.getTag();
-
-                        updateCategoryButtons();
-
-                        render();
-                    }
-            );
-
-            LinearLayout.LayoutParams bp =
+            LinearLayout.LayoutParams lp =
                     new LinearLayout.LayoutParams(
-                            dp(98),
-                            dp(38)
+                            0,dp(38),1
                     );
 
-            bp.setMargins(
-                    dp(5),
-                    0,
-                    dp(5),
-                    0
-            );
+            lp.setMargins(dp(3),0,dp(3),0);
 
-            categoryBar.addView(
-                    b,
-                    bp
-            );
+            categoryBar.addView(b,lp);
         }
-
-        hsv.addView(
-                categoryBar,
-                new HorizontalScrollView.LayoutParams(
-                        -2,
-                        dp(45)
-                )
-        );
-
-        root.addView(
-                hsv,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(45)
-                )
-        );
 
         updateCategoryButtons();
     }
@@ -620,718 +448,237 @@ public class MainActivity extends Activity {
         if (categoryBar == null)
             return;
 
-        for (
-                int i = 0;
-                i < categoryBar.getChildCount();
-                i++
-        ) {
+        String[] names = {
+                "All",
+                "Platinum",
+                "Gold",
+                "Silver",
+                "Bronze"
+        };
+
+        for (int i=0;i<categoryBar.getChildCount();i++) {
 
             TextView b =
-                    (TextView)
-                            categoryBar.getChildAt(i);
+                    (TextView)categoryBar.getChildAt(i);
 
-            String c =
-                    (String) b.getTag();
+            String name = names[i];
 
-            boolean sel =
-                    c.equals(currentFilter);
+            boolean selected =
+                    name.equals(currentFilter);
 
-            GradientDrawable d =
-                    new GradientDrawable();
+            b.setTextColor(categoryTextColor(name));
 
-            d.setCornerRadius(dp(19));
+            GradientDrawable g =
+                    rounded(
+                            selected
+                                    ? (isLight()
+                                    ? Color.rgb(215,218,224)
+                                    : Color.rgb(78,82,88))
+                                    : Color.TRANSPARENT,
+                            11
+                    );
 
-            d.setColor(
-                    sel
-                            ? (
-                                isLight()
-                                        ? Color.rgb(
-                                                235,
-                                                238,
-                                                242
-                                        )
-                                        : Color.rgb(
-                                                53,
-                                                56,
-                                                61
-                                        )
-                            )
-                            : (
-                                isLight()
-                                        ? Color.WHITE
-                                        : CARD_DARK
-                            )
-            );
-
-            b.setBackground(d);
-
-            b.setTextColor(
-                    categoryTextColor(c)
-            );
-        }
-
-        if (screenTitle != null) {
-
-            screenTitle.setText(
-                    currentFilter.equals("All")
-                            ? "All Achievements"
-                            : currentFilter
-            );
+            b.setBackground(g);
         }
     }
 
-    int categoryTextColor(String c) {
+    int categoryTextColor(String name) {
 
-        if ("Platinum".equals(c))
+        if ("Platinum".equals(name))
             return isLight()
-                    ? Color.rgb(
-                            45,
-                            47,
-                            52
-                    )
+                    ? Color.rgb(35,65,110)
                     : Color.WHITE;
 
-        if ("Gold".equals(c))
-            return Color.rgb(
-                    255,
-                    193,
-                    7
-            );
+        if ("Gold".equals(name))
+            return Color.rgb(215,175,40);
 
-        if ("Silver".equals(c))
-            return Color.rgb(
-                    90,
-                    165,
-                    235
-            );
+        if ("Silver".equals(name))
+            return Color.rgb(100,145,205);
 
-        if ("Bronze".equals(c))
-            return Color.rgb(
-                    181,
-                    112,
-                    55
-            );
+        if ("Bronze".equals(name))
+            return Color.rgb(165,100,65);
 
         return primaryText();
     }
 
-    TextView tv(
-            String s,
-            float size,
-            int color
-    ) {
+    // ---------------------------------------------------------
+    // CARD
+    // ---------------------------------------------------------
 
-        TextView t =
-                new TextView(this);
+    View makeCard(Achievement a, int index) {
 
-        t.setText(s);
+        LinearLayout card =
+                new LinearLayout(this);
 
-        t.setTextSize(size);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
 
-        t.setTextColor(color);
-
-        t.setGravity(
-                Gravity.CENTER_VERTICAL
+        card.setPadding(
+                dp(3),dp(2),dp(3),dp(2)
         );
 
-        t.setTypeface(
-                android.graphics.Typeface.create(
-                        "sans-serif",
-                        android.graphics.Typeface.NORMAL
-                )
-        );
+        // Custom / image background
+        if ("image".equals(a.backgroundMode)
+                && a.imagePath != null
+                && !a.imagePath.isEmpty()) {
 
-        return t;
-    }
+            Bitmap bm = decodeImage(a.imagePath);
 
-    void addPressAnimation(View v) {
+            if (bm != null) {
 
-        v.setOnTouchListener(
-                (view, event) -> {
-
-                    if (
-                            event.getAction()
-                                    == MotionEvent.ACTION_DOWN
-                    ) {
-
-                        view.animate()
-                                .scaleX(.94f)
-                                .scaleY(.94f)
-                                .setDuration(80)
-                                .start();
-
-                    } else if (
-                            event.getAction()
-                                    == MotionEvent.ACTION_UP
-                                    ||
-                            event.getAction()
-                                    == MotionEvent.ACTION_CANCEL
-                    ) {
-
-                        view.animate()
-                                .scaleX(1f)
-                                .scaleY(1f)
-                                .setDuration(120)
-                                .start();
-                    }
-
-                    return false;
-                }
-        );
-    }
-
-    boolean handleDrag(DragEvent e) {
-
-        if (
-                e.getAction()
-                        == DragEvent.ACTION_DRAG_STARTED
-        )
-            return true;
-
-        if (
-                e.getAction()
-                        == DragEvent.ACTION_DRAG_LOCATION
-                        && dragged != null
-        ) {
-
-            float y = e.getY();
-
-            int target =
-                    list.getChildCount();
-
-            for (
-                    int i = 0;
-                    i < list.getChildCount();
-                    i++
-            ) {
-
-                View c =
-                        list.getChildAt(i);
-
-                if (c == dragged)
-                    continue;
-
-                if (
-                        y <
-                                c.getTop()
-                                        + c.getHeight() / 2f
-                ) {
-
-                    target = i;
-                    break;
-                }
-            }
-
-            if (
-                    target >
-                            list.getChildCount() - 1
-            )
-                target =
-                        list.getChildCount() - 1;
-
-            int current =
-                    list.indexOfChild(dragged);
-
-            if (
-                    target >= 0
-                            && target != current
-                            && target != current + 1
-            ) {
-
-                list.removeView(dragged);
-
-                if (
-                        target >
-                                list.getChildCount()
-                )
-                    target =
-                            list.getChildCount();
-
-                list.addView(
-                        dragged,
-                        target
+                card.setBackground(
+                        new AchievementBackgroundDrawable(
+                                bm,
+                                isLight()
+                        )
                 );
 
-                for (
-                        int i = 0;
-                        i < list.getChildCount();
-                        i++
-                ) {
+            } else {
 
-                    View c =
-                            list.getChildAt(i);
-
-                    c.setTranslationY(
-                            i == target
-                                    ? dp(2)
-                                    : 0
-                    );
-                }
+                card.setBackground(
+                        rounded(cardColor(a),14)
+                );
             }
 
-            return true;
-        }
+        } else {
 
-        if (
-                e.getAction()
-                        == DragEvent.ACTION_DROP
-        ) {
-
-            saveOrderFromViews();
-
-            finishDrag();
-
-            render();
-
-            Toast.makeText(
-                    this,
-                    "Order saved",
-                    Toast.LENGTH_SHORT
-            ).show();
-
-            return true;
-        }
-
-        if (
-                e.getAction()
-                        == DragEvent.ACTION_DRAG_ENDED
-        ) {
-
-            finishDrag();
-
-            return true;
-        }
-
-        return true;
-    }
-
-    void finishDrag() {
-
-        if (dragged != null) {
-
-            dragged.setAlpha(1f);
-
-            dragged.setScaleX(1f);
-            dragged.setScaleY(1f);
-
-            dragged.setTranslationY(0);
-
-            dragged.setElevation(
-                    dp(3)
+            card.setBackground(
+                    rounded(cardColor(a),14)
             );
         }
 
-        for (
-                int i = 0;
-                list != null
-                        && i < list.getChildCount();
-                i++
-        ) {
+        card.setElevation(dp(2));
 
-            list.getChildAt(i)
-                    .setTranslationY(0);
-        }
-
-        dragged = null;
-    }
-
-    View makeCard(
-            Achievement a,
-            int index
-    ) {
-
-        final LinearLayout card =
-                new LinearLayout(this);
-
-        card.setOrientation(
-                LinearLayout.HORIZONTAL
-        );
-
-        card.setGravity(
-                Gravity.CENTER_VERTICAL
-        );
-
-        card.setPadding(
-                dp(3),
-                dp(2),
-                dp(3),
-                dp(2)
-        );
-
-        GradientDrawable bgd =
-                new GradientDrawable();
-
-        bgd.setColor(
-                cardColor(a)
-        );
-
-        bgd.setCornerRadius(
-                dp(14)
-        );
-
-        card.setBackground(bgd);
-
-        card.setElevation(
-                dp(2)
-        );
-
-        /*
-         * VISUAL
-         */
+        // VISUAL
         FrameLayout visual =
                 new FrameLayout(this);
 
-        GradientDrawable visualBg =
-                new GradientDrawable();
+        visual.setPadding(0,0,0,0);
 
-        /*
-         * اگر عکس داریم، کادر قبلی کاملاً حذف می‌شود.
-         * اگر عکس نداریم، ظاهر قبلی مدال حفظ می‌شود.
-         */
-        boolean hasImage =
-                a.imagePath != null
-                        && !a.imagePath.isEmpty();
+        Bitmap image = null;
 
-        if (hasImage) {
+        if (a.imagePath != null
+                && !a.imagePath.isEmpty()) {
 
-            visualBg.setColor(
-                    Color.TRANSPARENT
-            );
-
-            visualBg.setCornerRadius(0);
-
-        } else {
-
-            visualBg.setColor(
-                    visualColor(a)
-            );
-
-            visualBg.setCornerRadius(
-                    dp(12)
-            );
+            image = decodeImage(a.imagePath);
         }
 
-        visual.setBackground(
-                visualBg
-        );
+        if (image != null) {
 
-        /*
-         * IMAGE
-         */
-        if (hasImage) {
+            ImageView iv =
+                    new ImageView(this);
 
-            try {
+            iv.setImageBitmap(image);
+            iv.setScaleType(
+                    ImageView.ScaleType.CENTER_CROP
+            );
 
-                ImageView im =
-                        new ImageView(this);
+            GradientDrawable imageBg =
+                    new GradientDrawable();
 
-                Bitmap bm =
-                        BitmapFactory.decodeFile(
-                                a.imagePath
-                        );
+            imageBg.setColor(Color.TRANSPARENT);
 
-                if (bm != null) {
+            int borderColor =
+                    medalBorderColor(a.medal);
 
-                    im.setImageBitmap(bm);
+            imageBg.setStroke(dp(1),borderColor);
 
-                    im.setScaleType(
-                            ImageView.ScaleType.CENTER_CROP
-                    );
+            if ("square".equals(a.imageShape)) {
 
-                    GradientDrawable imageBg =
-                            new GradientDrawable();
+                imageBg.setCornerRadius(dp(4));
 
-                    imageBg.setColor(
-                            Color.TRANSPARENT
-                    );
+            } else {
 
-                    /*
-                     * خود ImageView شکل اصلی را می‌گیرد.
-                     */
-                    if (
-                            "square".equals(
-                                    a.imageShape
-                            )
-                    ) {
-
-                        imageBg.setShape(
-                                GradientDrawable.RECTANGLE
-                        );
-
-                        /*
-                         * گوشه‌های خیلی کم
-                         */
-                        imageBg.setCornerRadius(
-                                dp(3)
-                        );
-
-                    } else {
-
-                        /*
-                         * کاملاً دایره‌ای
-                         */
-                        imageBg.setShape(
-                                GradientDrawable.OVAL
-                        );
-                    }
-
-                    /*
-                     * حاشیه بر اساس مدال
-                     */
-                    imageBg.setStroke(
-                            dp(1),
-                            medalBorderColor(
-                                    a.medal
-                            )
-                    );
-
-                    im.setBackground(
-                            imageBg
-                    );
-
-                    /*
-                     * کلیپ کردن خود عکس
-                     * مطابق شکل Background
-                     */
-                    im.setClipToOutline(true);
-
-                    /*
-                     * عکس کمی بزرگ‌تر از نسخه قبلی
-                     */
-                    FrameLayout.LayoutParams imageLp =
-                            new FrameLayout.LayoutParams(
-                                    dp(60),
-                                    dp(60)
-                            );
-
-                    imageLp.gravity =
-                            Gravity.CENTER;
-
-                    visual.addView(
-                            im,
-                            imageLp
-                    );
-
-                } else {
-
-                    /*
-                     * اگر عکس خراب باشد
-                     * مدال نمایش داده می‌شود.
-                     */
-                    visualBg.setColor(
-                            visualColor(a)
-                    );
-
-                    visualBg.setCornerRadius(
-                            dp(12)
-                    );
-
-                    visual.setBackground(
-                            visualBg
-                    );
-
-                    addMedal(
-                            visual,
-                            a
-                    );
-                }
-
-            } catch (Exception ignored) {
-
-                visualBg.setColor(
-                        visualColor(a)
-                );
-
-                visualBg.setCornerRadius(
-                        dp(12)
-                );
-
-                visual.setBackground(
-                        visualBg
-                );
-
-                addMedal(
-                        visual,
-                        a
+                imageBg.setShape(
+                        GradientDrawable.OVAL
                 );
             }
 
+            iv.setBackground(imageBg);
+            iv.setClipToOutline(true);
+
+            FrameLayout.LayoutParams ip =
+                    new FrameLayout.LayoutParams(
+                            dp(64),dp(64),
+                            Gravity.CENTER
+                    );
+
+            visual.addView(iv,ip);
+
         } else {
 
-            addMedal(
-                    visual,
-                    a
+            TextView medal =
+                    tv(medalEmoji(a.medal),31,false);
+
+            medal.setGravity(Gravity.CENTER);
+
+            visual.addView(
+                    medal,
+                    new FrameLayout.LayoutParams(
+                            dp(64),dp(64),
+                            Gravity.CENTER
+                    )
             );
         }
 
-        /*
-         * DRAG HANDLE
-         */
-        TextView grip =
-                tv(
-                        "☷",
-                        19,
-                        a.done
-                                ? (
-                                    isLight()
-                                            ? GREEN
-                                            : Color.WHITE
-                                )
-                                : secondaryText()
-                );
-
-        grip.setGravity(
-                Gravity.CENTER
-        );
-
-        visual.addView(
-                grip,
-                new FrameLayout.LayoutParams(
-                        dp(26),
-                        dp(26),
-                        Gravity.LEFT
-                                | Gravity.BOTTOM
-                )
-        );
-
-        LinearLayout.LayoutParams vp =
+        LinearLayout.LayoutParams visualLp =
                 new LinearLayout.LayoutParams(
-                        dp(62),
-                        dp(62)
+                        dp(68),dp(68)
                 );
 
-        vp.setMargins(
-                dp(2),
-                0,
-                dp(3),
-                0
-        );
+        card.addView(visual,visualLp);
 
-        card.addView(
-                visual,
-                vp
-        );
-
-        /*
-         * TEXT
-         */
-        LinearLayout text =
+        // TEXT
+        LinearLayout texts =
                 new LinearLayout(this);
 
-        text.setOrientation(
+        texts.setOrientation(
                 LinearLayout.VERTICAL
         );
 
-        text.setGravity(
-                Gravity.CENTER_VERTICAL
-        );
+        texts.setGravity(Gravity.CENTER_VERTICAL);
+        texts.setPadding(dp(5),0,dp(3),0);
 
-        text.setPadding(
-                dp(6),
-                0,
-                dp(3),
-                0
-        );
+        int textColor =
+                achievementTextColor(a);
 
-        int textMain =
-                a.done && !isLight()
-                        ? Color.WHITE
-                        : primaryText();
-
-        int textSecond =
-                a.done && !isLight()
-                        ? Color.rgb(
-                                225,
-                                240,
-                                250
-                        )
-                        : secondaryText();
+        int secondColor =
+                achievementSecondaryColor(a);
 
         TextView title =
-                tv(
-                        a.title,
-                        15,
-                        textMain
-                );
+                tv(a.title,17,true);
 
-        title.setTypeface(
-                android.graphics.Typeface.create(
-                        "sans-serif-medium",
-                        android.graphics.Typeface.NORMAL
-                )
-        );
-
-        title.setGravity(
-                Gravity.RIGHT
-                        | Gravity.CENTER_VERTICAL
-        );
-
-        title.setTextDirection(
-                View.TEXT_DIRECTION_ANY_RTL
-        );
-
-        title.setSingleLine(false);
-
+        title.setTextColor(textColor);
         title.setMaxLines(2);
-
-        title.setEllipsize(null);
-
-        title.setIncludeFontPadding(false);
+        title.setGravity(Gravity.RIGHT);
+        title.setTextDirection(View.TEXT_DIRECTION_RTL);
 
         TextView desc =
-                tv(
-                        a.desc,
-                        11,
-                        textSecond
-                );
+                tv(a.desc,12.5f,false);
 
-        desc.setGravity(
-                Gravity.RIGHT
-                        | Gravity.CENTER_VERTICAL
-        );
-
-        desc.setTextDirection(
-                View.TEXT_DIRECTION_ANY_RTL
-        );
-
-        desc.setSingleLine(false);
-
+        desc.setTextColor(secondColor);
         desc.setMaxLines(2);
+        desc.setGravity(Gravity.RIGHT);
+        desc.setTextDirection(View.TEXT_DIRECTION_RTL);
 
-        desc.setEllipsize(null);
-
-        desc.setIncludeFontPadding(false);
-
-        text.addView(
-                title,
+        texts.addView(title,
                 new LinearLayout.LayoutParams(
-                        -1,
-                        0,
-                        1.25f
-                )
-        );
+                        -1,0,1
+                ));
 
-        text.addView(
-                desc,
+        texts.addView(desc,
                 new LinearLayout.LayoutParams(
-                        -1,
-                        0,
-                        1.0f
-                )
-        );
+                        -1,0,1
+                ));
 
         card.addView(
-                text,
+                texts,
                 new LinearLayout.LayoutParams(
-                        0,
-                        dp(70),
-                        1
+                        0,dp(72),1
                 )
         );
 
-        /*
-         * ACTIONS
-         */
+        // ACTIONS
         LinearLayout actions =
                 new LinearLayout(this);
 
@@ -1339,480 +686,436 @@ public class MainActivity extends Activity {
                 LinearLayout.VERTICAL
         );
 
-        actions.setGravity(
-                Gravity.CENTER
-        );
+        actions.setGravity(Gravity.CENTER);
 
-        /*
-         * COMPLETE
-         */
         TextView done =
-                tv(
-                        a.done
-                                ? "✓"
-                                : "○",
-                        20,
-                        a.done
-                                ? (
-                                    isLight()
-                                            ? GREEN
-                                            : CYAN
-                                )
-                                : secondaryText()
-                );
+                tv(a.done ? "✓" : "○",21,true);
 
-        done.setGravity(
-                Gravity.CENTER
+        done.setGravity(Gravity.CENTER);
+
+        done.setTextColor(
+                a.done
+                        ? (isLight()
+                        ? Color.rgb(25,125,65)
+                        : Color.rgb(105,205,245))
+                        : secondColor
         );
 
-        done.setContentDescription(
-                "Toggle completed"
-        );
+        done.setOnClickListener(v -> {
+
+            a.done = !a.done;
+
+            save();
+            render();
+        });
 
         addPressAnimation(done);
 
-        done.setOnClickListener(
-                v -> {
-
-                    a.done = !a.done;
-
-                    save();
-
-                    render();
-                }
-        );
-
-        /*
-         * PIN
-         */
         TextView pin =
-                tv(
-                        a.pinned
-                                ? "★"
-                                : "☆",
-                        21,
-                        a.pinned
-                                ? (
-                                    isLight()
-                                            ? GREEN
-                                            : CYAN
-                                )
-                                : secondaryText()
-                );
+                tv(a.pinned ? "★" : "☆",20,true);
 
-        pin.setGravity(
-                Gravity.CENTER
+        pin.setGravity(Gravity.CENTER);
+
+        pin.setTextColor(
+                a.pinned
+                        ? Color.rgb(255,205,50)
+                        : secondColor
         );
 
-        pin.setContentDescription(
-                "Pin achievement"
-        );
+        pin.setOnClickListener(v -> {
+
+            a.pinned = !a.pinned;
+
+            save();
+            render();
+        });
 
         addPressAnimation(pin);
 
-        pin.setOnClickListener(
-                v -> {
-
-                    a.pinned = !a.pinned;
-
-                    save();
-
-                    render();
-                }
-        );
-
-        /*
-         * DELETE
-         */
         TextView delete =
-                tv(
-                        "🗑",
-                        16,
-                        secondaryText()
-                );
+                tv("🗑",16,false);
 
-        delete.setGravity(
-                Gravity.CENTER
-        );
+        delete.setGravity(Gravity.CENTER);
 
-        delete.setContentDescription(
-                "Delete achievement"
+        delete.setOnClickListener(
+                v -> confirmDelete(index)
         );
 
         addPressAnimation(delete);
 
-        delete.setOnClickListener(
-                v -> {
-
-                    int realIndex =
-                            data.indexOf(a);
-
-                    if (realIndex >= 0) {
-
-                        confirmDelete(
-                                realIndex
-                        );
-                    }
-                }
-        );
-
         actions.addView(
                 done,
                 new LinearLayout.LayoutParams(
-                        dp(32),
-                        dp(27)
+                        dp(30),0,1
                 )
         );
 
         actions.addView(
                 pin,
                 new LinearLayout.LayoutParams(
-                        dp(32),
-                        dp(27)
+                        dp(30),0,1
                 )
         );
 
         actions.addView(
                 delete,
                 new LinearLayout.LayoutParams(
-                        dp(32),
-                        dp(27)
+                        dp(30),0,1
                 )
         );
 
-        card.addView(
-                actions,
+        card.addView(actions,
                 new LinearLayout.LayoutParams(
-                        dp(34),
-                        dp(84)
-                )
+                        dp(32),dp(78)
+                ));
+
+        // DRAG GRIP
+        TextView grip =
+                tv("☷",18,true);
+
+        grip.setGravity(Gravity.CENTER);
+
+        grip.setTextColor(
+                achievementSecondaryColor(a)
         );
 
-        /*
-         * EDIT
-         */
-        card.setTag(a);
+        FrameLayout wrapper =
+                new FrameLayout(this);
 
-        addPressAnimation(card);
-
-        card.setOnClickListener(
-                v -> {
-
-                    int realIndex =
-                            data.indexOf(a);
-
-                    if (realIndex >= 0)
-                        showEditor(realIndex);
-                }
+        wrapper.setBackgroundColor(
+                Color.TRANSPARENT
         );
 
-        /*
-         * DRAG
-         */
-        card.setOnLongClickListener(
-                v -> {
+        // Instead of changing the structure of the card,
+        // use a transparent overlay only for the grip.
+        // The grip remains at the left edge.
 
-                    dragged = card;
+        grip.setOnTouchListener((v,event) -> {
 
-                    card.setAlpha(.72f);
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
 
-                    card.setScaleX(1.025f);
-                    card.setScaleY(1.025f);
+                dragged = card;
 
-                    card.setElevation(
-                            dp(10)
-                    );
-
-                    Toast.makeText(
-                            this,
-                            "Hold and drag to reorder",
-                            Toast.LENGTH_SHORT
-                    ).show();
-
-                    if (
-                            android.os.Build.VERSION.SDK_INT
-                                    >= 24
-                    ) {
-
-                        card.startDragAndDrop(
-                                null,
-                                new View.DragShadowBuilder(
-                                        card
-                                ),
-                                null,
-                                View.DRAG_FLAG_GLOBAL
+                ClipData data =
+                        ClipData.newPlainText(
+                                "achievement",
+                                ""
                         );
 
-                    } else {
+                View.DragShadowBuilder shadow =
+                        new View.DragShadowBuilder(card);
 
-                        card.startDrag(
-                                null,
-                                new View.DragShadowBuilder(
-                                        card
-                                ),
-                                null,
-                                0
-                        );
-                    }
-
-                    return true;
-                }
-        );
-
-        LinearLayout.LayoutParams lp =
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(90)
+                card.startDragAndDrop(
+                        data,
+                        shadow,
+                        card,
+                        0
                 );
 
-        lp.setMargins(
+                return true;
+            }
+
+            return false;
+        });
+
+        card.addView(
+                grip,
                 0,
-                dp(2),
-                0,
-                dp(2)
+                new LinearLayout.LayoutParams(
+                        dp(24),dp(30)
+                )
         );
 
-        card.setLayoutParams(lp);
+        card.setOnDragListener(
+                (v,event) -> handleDrag(v,event)
+        );
+
+        card.setOnClickListener(
+                v -> showEditor(index)
+        );
+
+        card.setOnLongClickListener(v -> {
+
+            dragged = card;
+
+            ClipData data =
+                    ClipData.newPlainText(
+                            "achievement",
+                            ""
+                    );
+
+            View.DragShadowBuilder shadow =
+                    new View.DragShadowBuilder(card);
+
+            card.startDragAndDrop(
+                    data,
+                    shadow,
+                    card,
+                    0
+            );
+
+            return true;
+        });
+
+        LinearLayout.LayoutParams cp =
+                new LinearLayout.LayoutParams(
+                        -1,dp(94)
+                );
+
+        cp.setMargins(0,dp(2),0,dp(2));
+
+        card.setLayoutParams(cp);
 
         return card;
     }
 
-    void confirmDelete(
-            final int index
-    ) {
+    int medalBorderColor(String medal) {
 
-        if (
-                index < 0
-                        || index >= data.size()
-        )
-            return;
+        if ("Platinum".equals(medal))
+            return Color.rgb(35,70,125);
 
-        final Achievement target =
-                data.get(index);
+        if ("Gold".equals(medal))
+            return Color.rgb(235,195,35);
 
-        new AlertDialog.Builder(this)
-                .setTitle(
-                        "Delete achievement?"
-                )
-                .setMessage(
-                        target.title
-                )
-                .setNegativeButton(
-                        "Cancel",
-                        null
-                )
-                .setPositiveButton(
-                        "Delete",
-                        (d,w) ->
-                                animateDelete(
-                                        target
-                                )
-                )
-                .show();
+        if ("Silver".equals(medal))
+            return Color.WHITE;
+
+        return Color.rgb(145,85,50);
     }
 
-    void animateDelete(
-            final Achievement target
-    ) {
+    // ---------------------------------------------------------
+    // CUSTOM CARD BACKGROUND
+    // ---------------------------------------------------------
 
-        if (list == null) {
+    static class AchievementBackgroundDrawable
+            extends Drawable {
 
-            data.remove(target);
+        Bitmap bitmap;
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        boolean light;
 
-            save();
+        AchievementBackgroundDrawable(
+                Bitmap b,
+                boolean l
+        ) {
+            bitmap = b;
+            light = l;
 
-            render();
-
-            return;
+            paint.setFilterBitmap(true);
         }
 
-        View targetView = null;
+        @Override
+        public void draw(Canvas canvas) {
 
-        for (
-                int i = 0;
-                i < list.getChildCount();
-                i++
+            Rect bounds = getBounds();
+
+            if (bitmap == null)
+                return;
+
+            Path path = new Path();
+
+            float radius = 14;
+
+            path.addRoundRect(
+                    new RectF(bounds),
+                    radius,
+                    radius,
+                    Path.Direction.CW
+            );
+
+            canvas.save();
+            canvas.clipPath(path);
+
+            // CENTER CROP
+            float scale =
+                    Math.max(
+                            bounds.width() /
+                                    (float)bitmap.getWidth(),
+                            bounds.height() /
+                                    (float)bitmap.getHeight()
+                    );
+
+            float w =
+                    bitmap.getWidth() * scale;
+
+            float h =
+                    bitmap.getHeight() * scale;
+
+            float left =
+                    bounds.left +
+                            (bounds.width()-w)/2f;
+
+            float top =
+                    bounds.top +
+                            (bounds.height()-h)/2f;
+
+            RectF dst =
+                    new RectF(
+                            left,
+                            top,
+                            left+w,
+                            top+h
+                    );
+
+            paint.setAlpha(255);
+
+            canvas.drawBitmap(
+                    bitmap,
+                    null,
+                    dst,
+                    paint
+            );
+
+            // READABILITY OVERLAY
+            paint.setColor(
+                    Color.argb(
+                            light ? 80 : 105,
+                            0,0,0
+                    )
+            );
+
+            canvas.drawRect(
+                    bounds.left,
+                    bounds.top,
+                    bounds.right,
+                    bounds.bottom,
+                    paint
+            );
+
+            canvas.restore();
+        }
+
+        @Override
+        public void setAlpha(int alpha) {
+            paint.setAlpha(alpha);
+        }
+
+        @Override
+        public void setColorFilter(
+                ColorFilter filter
         ) {
+            paint.setColorFilter(filter);
+        }
 
-            View child =
+        @Override
+        public int getOpacity() {
+            return PixelFormat.TRANSLUCENT;
+        }
+    }
+
+    // ---------------------------------------------------------
+    // DRAG / DROP
+    // ---------------------------------------------------------
+
+    boolean handleDrag(
+            View v,
+            DragEvent event
+    ) {
+
+        if (event.getAction()
+                == DragEvent.ACTION_DROP) {
+
+            finishDrag((View)v);
+
+            return true;
+        }
+
+        if (event.getAction()
+                == DragEvent.ACTION_DRAG_ENDED) {
+
+            return true;
+        }
+
+        return true;
+    }
+
+    void finishDrag(View target) {
+
+        if (dragged == null ||
+                dragged == target)
+            return;
+
+        int from =
+                list.indexOfChild(dragged);
+
+        int to =
+                list.indexOfChild(target);
+
+        if (from < 0 || to < 0)
+            return;
+
+        View item = dragged;
+
+        list.removeViewAt(from);
+
+        if (from < to)
+            to--;
+
+        list.addView(item,to);
+
+        saveOrderFromViews();
+
+        dragged = null;
+    }
+
+    void saveOrderFromViews() {
+
+        ArrayList<Achievement> reordered =
+                new ArrayList<>();
+
+        for (int i=0;i<list.getChildCount();i++) {
+
+            View v =
                     list.getChildAt(i);
 
-            if (
-                    child.getTag()
-                            == target
-            ) {
+            Object tag = v.getTag();
 
-                targetView = child;
-
-                break;
+            if (tag instanceof Achievement) {
+                reordered.add(
+                        (Achievement)tag
+                );
             }
         }
 
-        if (targetView == null) {
+        if (reordered.size() ==
+                visibleAchievements().size()) {
 
-            data.remove(target);
+            ArrayList<Achievement> result =
+                    new ArrayList<>();
+
+            HashSet<Achievement> visible =
+                    new HashSet<>(
+                            visibleAchievements()
+                    );
+
+            int visibleIndex = 0;
+
+            for (Achievement a : data) {
+
+                if (visible.contains(a)) {
+
+                    result.add(
+                            reordered.get(
+                                    visibleIndex++
+                            )
+                    );
+
+                } else {
+
+                    result.add(a);
+                }
+            }
+
+            data = result;
 
             save();
-
             render();
-
-            return;
         }
-
-        final View finalTarget =
-                targetView;
-
-        finalTarget.animate()
-                .alpha(0f)
-                .translationX(dp(90))
-                .scaleX(.82f)
-                .scaleY(.82f)
-                .setDuration(240)
-                .setInterpolator(
-                        new AccelerateInterpolator()
-                )
-                .withEndAction(
-                        () -> {
-
-                            data.remove(
-                                    target
-                            );
-
-                            save();
-
-                            render();
-                        }
-                )
-                .start();
     }
 
-    void addMedal(
-            FrameLayout f,
-            Achievement a
-    ) {
-
-        TextView medal =
-                tv(
-                        medalEmoji(a.medal),
-                        48,
-                        medalColor(a.medal)
-                );
-
-        medal.setGravity(
-                Gravity.CENTER
-        );
-
-        f.addView(
-                medal,
-                new FrameLayout.LayoutParams(
-                        -1,
-                        -1
-                )
-        );
-    }
-
-    String medalEmoji(String m) {
-
-        if ("Bronze".equals(m))
-            return "🥉";
-
-        if ("Silver".equals(m))
-            return "🥈";
-
-        if ("Gold".equals(m))
-            return "🥇";
-
-        return "🏆";
-    }
-
-    int medalColor(String m) {
-
-        if ("Bronze".equals(m))
-            return Color.rgb(
-                    205,
-                    127,
-                    50
-            );
-
-        if ("Silver".equals(m))
-            return Color.LTGRAY;
-
-        if ("Gold".equals(m))
-            return Color.rgb(
-                    255,
-                    193,
-                    7
-            );
-
-        return CYAN;
-    }
-
-    int medalBorderColor(String m) {
-
-        if ("Bronze".equals(m))
-            return Color.rgb(
-                    150,
-                    95,
-                    45
-            );
-
-        if ("Silver".equals(m))
-            return Color.WHITE;
-
-        if ("Gold".equals(m))
-            return Color.rgb(
-                    255,
-                    193,
-                    7
-            );
-
-        return Color.rgb(
-                35,
-                65,
-                110
-        );
-    }
-
-    boolean matchesFilter(
-            Achievement a
-    ) {
-
-        return currentFilter.equals("All")
-                || a.medal.equals(
-                        currentFilter
-                );
-    }
-
-    int actualIndex(
-            Achievement a
-    ) {
-
-        return data.indexOf(a);
-    }
-
-    ArrayList<Achievement>
-    visibleAchievements() {
-
-        ArrayList<Achievement> out =
-                new ArrayList<>();
-
-        for (Achievement a : data) {
-
-            if (matchesFilter(a))
-                out.add(a);
-        }
-
-        Collections.sort(
-                out,
-                (x,y) ->
-                        Boolean.compare(
-                                !x.pinned,
-                                !y.pinned
-                        )
-        );
-
-        return out;
-    }
+    // ---------------------------------------------------------
+    // RENDER
+    // ---------------------------------------------------------
 
     void render() {
 
@@ -1824,70 +1127,115 @@ public class MainActivity extends Activity {
         ArrayList<Achievement> visible =
                 visibleAchievements();
 
-        for (Achievement a : visible) {
+        for (int i=0;i<visible.size();i++) {
 
-            list.addView(
-                    makeCard(
-                            a,
-                            actualIndex(a)
-                    )
-            );
+            Achievement a =
+                    visible.get(i);
+
+            int realIndex =
+                    data.indexOf(a);
+
+            View card =
+                    makeCard(a,realIndex);
+
+            card.setTag(a);
+
+            list.addView(card);
         }
 
-        int b = 0;
-        int s = 0;
-        int g = 0;
-        int p = 0;
+        int bronzeTotal=0;
+        int bronzeDone=0;
+
+        int silverTotal=0;
+        int silverDone=0;
+
+        int goldTotal=0;
+        int goldDone=0;
+
+        int platinumTotal=0;
+        int platinumDone=0;
 
         for (Achievement a : data) {
 
-            if (a.done) {
+            if ("Bronze".equals(a.medal)) {
+                bronzeTotal++;
+                if (a.done)
+                    bronzeDone++;
+            }
 
-                if (
-                        a.medal.equals(
-                                "Bronze"
-                        )
-                )
-                    b++;
+            else if ("Silver".equals(a.medal)) {
+                silverTotal++;
+                if (a.done)
+                    silverDone++;
+            }
 
-                else if (
-                        a.medal.equals(
-                                "Silver"
-                        )
-                )
-                    s++;
+            else if ("Gold".equals(a.medal)) {
+                goldTotal++;
+                if (a.done)
+                    goldDone++;
+            }
 
-                else if (
-                        a.medal.equals(
-                                "Gold"
-                        )
-                )
-                    g++;
-
-                else
-                    p++;
+            else if ("Platinum".equals(a.medal)) {
+                platinumTotal++;
+                if (a.done)
+                    platinumDone++;
             }
         }
 
         counts.setText(
-                "🥉 " + b
-                        + "    🥈 " + s
-                        + "    🥇 " + g
-                        + "    🏆 " + p
+                "🥉 " + bronzeTotal + " - " + bronzeDone +
+                "    🥈 " + silverTotal + " - " + silverDone +
+                "    🥇 " + goldTotal + " - " + goldDone +
+                "    🏆 " + platinumTotal + " - " + platinumDone
         );
 
         updateCategoryButtons();
     }
 
-    void showEditor(
-            final int index
-    ) {
+    ArrayList<Achievement> visibleAchievements() {
 
-        boolean edit =
-                index >= 0;
+        ArrayList<Achievement> result =
+                new ArrayList<>();
+
+        for (Achievement a : data) {
+
+            if (!currentFilter.equals("All")
+                    && !currentFilter.equals(a.medal))
+                continue;
+
+            result.add(a);
+        }
+
+        Collections.sort(
+                result,
+                (a,b) -> {
+
+                    if (a.pinned && !b.pinned)
+                        return -1;
+
+                    if (!a.pinned && b.pinned)
+                        return 1;
+
+                    return Integer.compare(
+                            data.indexOf(a),
+                            data.indexOf(b)
+                    );
+                }
+        );
+
+        return result;
+    }
+
+    // ---------------------------------------------------------
+    // EDITOR
+    // ---------------------------------------------------------
+
+    void showEditor(int index) {
+
+        boolean editing = index >= 0;
 
         Achievement old =
-                edit
+                editing
                         ? data.get(index)
                         : new Achievement(
                                 "",
@@ -1900,6 +1248,18 @@ public class MainActivity extends Activity {
                 old.imagePath
         };
 
+        final String[] chosenShape = {
+                old.imageShape
+        };
+
+        final int[] chosenColor = {
+                old.customColor
+        };
+
+        final String[] chosenMode = {
+                old.backgroundMode
+        };
+
         LinearLayout box =
                 new LinearLayout(this);
 
@@ -1908,58 +1268,183 @@ public class MainActivity extends Activity {
         );
 
         box.setPadding(
-                dp(18),
-                dp(5),
-                dp(18),
-                0
+                dp(18),dp(5),dp(18),0
         );
 
+        // CUSTOMIZATION SECTION
+        TextView customizationTitle =
+                tv("Customization",16,true);
+
+        customizationTitle.setTextColor(
+                primaryText()
+        );
+
+        customizationTitle.setPadding(
+                0,dp(8),0,dp(6)
+        );
+
+        box.addView(customizationTitle);
+
+        TextView modeText =
+                tv(
+                        customizationText(
+                                chosenMode[0]
+                        ),
+                        13,
+                        true
+                );
+
+        modeText.setTextColor(
+                secondaryText()
+        );
+
+        box.addView(modeText);
+
+        LinearLayout customButtons =
+                new LinearLayout(this);
+
+        customButtons.setOrientation(
+                LinearLayout.HORIZONTAL
+        );
+
+        Button defaultBtn =
+                editorButton("Default");
+
+        Button colorBtn =
+                editorButton("Custom Color");
+
+        Button imageBtn =
+                editorButton("Image Background");
+
+        customButtons.addView(
+                defaultBtn,
+                new LinearLayout.LayoutParams(
+                        0,dp(44),1
+                )
+        );
+
+        customButtons.addView(
+                colorBtn,
+                new LinearLayout.LayoutParams(
+                        0,dp(44),1
+                )
+        );
+
+        customButtons.addView(
+                imageBtn,
+                new LinearLayout.LayoutParams(
+                        0,dp(44),1
+                )
+        );
+
+        box.addView(customButtons);
+
+        defaultBtn.setOnClickListener(v -> {
+
+            chosenMode[0] = "default";
+
+            modeText.setText(
+                    customizationText(
+                            chosenMode[0]
+                    )
+            );
+        });
+
+        colorBtn.setOnClickListener(v -> {
+
+            showColorPickerDialog(
+                    old,
+                    chosenColor,
+                    chosenMode,
+                    modeText
+            );
+        });
+
+        imageBtn.setOnClickListener(v -> {
+
+            if (chosenImage[0] == null ||
+                    chosenImage[0].isEmpty()) {
+
+                Toast.makeText(
+                        this,
+                        "First add an image to this achievement.",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                return;
+            }
+
+            chosenMode[0] = "image";
+
+            modeText.setText(
+                    customizationText(
+                            chosenMode[0]
+                    )
+            );
+        });
+
+        // TITLE
         EditText title =
                 new EditText(this);
 
-        title.setHint(
-                "Achievement title"
+        title.setHint("Achievement title");
+        title.setText(old.title);
+        title.setTextSize(17);
+        title.setTypeface(
+                Typeface.create(
+                        "sans-serif-medium",
+                        Typeface.NORMAL
+                )
         );
 
-        title.setText(
-                old.title
-        );
-
-        title.setTextColor(
-                primaryText()
-        );
-
+        title.setTextColor(primaryText());
         title.setHintTextColor(
-                Color.GRAY
+                isLight()
+                        ? Color.rgb(130,132,138)
+                        : Color.rgb(160,163,168)
         );
 
+        box.addView(
+                title,
+                new LinearLayout.LayoutParams(
+                        -1,dp(54)
+                )
+        );
+
+        // DESCRIPTION
         EditText desc =
                 new EditText(this);
 
-        desc.setHint(
-                "Description"
-        );
-
-        desc.setText(
-                old.desc
-        );
-
-        desc.setTextColor(
-                primaryText()
-        );
-
-        desc.setHintTextColor(
-                Color.GRAY
+        desc.setHint("Description");
+        desc.setText(old.desc);
+        desc.setTextSize(13);
+        desc.setGravity(
+                Gravity.TOP | Gravity.RIGHT
         );
 
         desc.setInputType(
-                InputType.TYPE_CLASS_TEXT
-                        | InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                InputType.TYPE_CLASS_TEXT |
+                InputType.TYPE_TEXT_FLAG_MULTI_LINE
         );
 
         desc.setMinLines(2);
 
-        Spinner spinner =
+        desc.setTextColor(primaryText());
+        desc.setHintTextColor(
+                isLight()
+                        ? Color.rgb(130,132,138)
+                        : Color.rgb(160,163,168)
+        );
+
+        box.addView(
+                desc,
+                new LinearLayout.LayoutParams(
+                        -1,dp(72)
+                )
+        );
+
+        // MEDAL
+        Spinner medalSpinner =
                 new Spinner(this);
 
         String[] medals = {
@@ -1969,33 +1454,99 @@ public class MainActivity extends Activity {
                 "Platinum"
         };
 
-        spinner.setAdapter(
+        ArrayAdapter<String> adapter =
                 new ArrayAdapter<String>(
                         this,
                         android.R.layout.simple_spinner_dropdown_item,
                         medals
-                )
-        );
+                );
 
-        for (
-                int i = 0;
-                i < medals.length;
-                i++
-        ) {
+        medalSpinner.setAdapter(adapter);
 
-            if (
-                    medals[i].equals(
-                            old.medal
-                    )
-            ) {
+        int selectedMedal = 0;
 
-                spinner.setSelection(i);
+        for (int i=0;i<medals.length;i++) {
+
+            if (medals[i].equals(old.medal)) {
+                selectedMedal = i;
+                break;
             }
         }
 
-        /*
-         * IMAGE PREVIEW
-         */
+        medalSpinner.setSelection(selectedMedal);
+
+        box.addView(
+                medalSpinner,
+                new LinearLayout.LayoutParams(
+                        -1,dp(52)
+                )
+        );
+
+        // SHAPE
+        TextView shapeTitle =
+                tv("Image Shape",14,true);
+
+        shapeTitle.setPadding(
+                0,dp(6),0,0
+        );
+
+        box.addView(shapeTitle);
+
+        RadioGroup shapeGroup =
+                new RadioGroup(this);
+
+        shapeGroup.setOrientation(
+                RadioGroup.HORIZONTAL
+        );
+
+        RadioButton circle =
+                new RadioButton(this);
+
+        circle.setText("Circle");
+        circle.setTextColor(primaryText());
+
+        RadioButton square =
+                new RadioButton(this);
+
+        square.setText("Square");
+        square.setTextColor(primaryText());
+
+        shapeGroup.addView(circle);
+        shapeGroup.addView(square);
+
+        if ("square".equals(old.imageShape))
+            square.setChecked(true);
+        else
+            circle.setChecked(true);
+
+        shapeGroup.setOnCheckedChangeListener(
+                (group,checkedId) -> {
+
+                    if (checkedId == square.getId())
+                        chosenShape[0] = "square";
+                    else
+                        chosenShape[0] = "circle";
+                }
+        );
+
+        box.addView(
+                shapeGroup,
+                new LinearLayout.LayoutParams(
+                        -1,dp(48)
+                )
+        );
+
+        // PIN
+        CheckBox pin =
+                new CheckBox(this);
+
+        pin.setText("Pin this achievement");
+        pin.setChecked(old.pinned);
+        pin.setTextColor(primaryText());
+
+        box.addView(pin);
+
+        // PREVIEW
         ImageView preview =
                 new ImageView(this);
 
@@ -2007,214 +1558,79 @@ public class MainActivity extends Activity {
                 panelColor()
         );
 
-        preview.setAdjustViewBounds(true);
-
-        preview.setMinimumHeight(
-                dp(100)
-        );
-
-        if (
-                chosenImage[0] != null
-                        && !chosenImage[0].isEmpty()
-        ) {
-
-            Bitmap previewBitmap =
-                    BitmapFactory.decodeFile(
-                            chosenImage[0]
-                    );
-
-            if (previewBitmap != null)
-                preview.setImageBitmap(
-                        previewBitmap
-                );
-            else
-                preview.setImageResource(
-                        android.R.drawable.ic_menu_gallery
-                );
-
-        } else {
-
-            preview.setImageResource(
-                    android.R.drawable.ic_menu_gallery
-            );
-        }
-
-        /*
-         * IMAGE SHAPE
-         */
-        TextView shapeTitle =
-                tv(
-                        "Image Shape",
-                        14,
-                        primaryText()
-                );
-
-        shapeTitle.setPadding(
-                0,
-                dp(8),
-                0,
-                dp(2)
-        );
-
-        RadioGroup shapeGroup =
-                new RadioGroup(this);
-
-        shapeGroup.setOrientation(
-                RadioGroup.HORIZONTAL
-        );
-
-        RadioButton circleOption =
-                new RadioButton(this);
-
-        circleOption.setText(
-                "Circle"
-        );
-
-        circleOption.setTextSize(14);
-
-        circleOption.setTextColor(
-                primaryText()
-        );
-
-        RadioButton squareOption =
-                new RadioButton(this);
-
-        squareOption.setText(
-                "Square"
-        );
-
-        squareOption.setTextSize(14);
-
-        squareOption.setTextColor(
-                primaryText()
-        );
-
-        shapeGroup.addView(
-                circleOption,
-                new RadioGroup.LayoutParams(
-                        0,
-                        dp(45),
-                        1
-                )
-        );
-
-        shapeGroup.addView(
-                squareOption,
-                new RadioGroup.LayoutParams(
-                        0,
-                        dp(45),
-                        1
-                )
-        );
-
-        if (
-                "square".equals(
-                        old.imageShape
-                )
-        ) {
-
-            squareOption.setChecked(
-                    true
-            );
-
-        } else {
-
-            circleOption.setChecked(
-                    true
-            );
-        }
-
-        CheckBox pinBox =
-                new CheckBox(this);
-
-        pinBox.setText(
-                "Pin this achievement in its section"
-        );
-
-        pinBox.setTextColor(
-                primaryText()
-        );
-
-        pinBox.setChecked(
-                old.pinned
-        );
-
-        Button imageBtn =
-                new Button(this);
-
-        imageBtn.setText(
-                chosenImage[0].isEmpty()
-                        ? "Add image"
-                        : "Change image"
-        );
-
-        imageBtn.setOnClickListener(
-                v ->
-                        pickImage(
-                                chosenImage,
-                                preview,
-                                imageBtn
-                        )
-        );
-
-        Button removeImage =
-                new Button(this);
-
-        removeImage.setText(
-                "Remove image"
-        );
-
-        removeImage.setOnClickListener(
-                v -> {
-
-                    chosenImage[0] = "";
-
-                    preview.setImageResource(
-                            android.R.drawable.ic_menu_gallery
-                    );
-
-                    imageBtn.setText(
-                            "Add image"
-                    );
-                }
-        );
-
-        /*
-         * EDITOR ORDER
-         */
-        box.addView(title);
-
-        box.addView(desc);
-
-        box.addView(spinner);
-
-        box.addView(
-                shapeTitle
-        );
-
-        box.addView(
-                shapeGroup
-        );
-
-        box.addView(pinBox);
-
-        box.addView(
-                preview,
+        LinearLayout.LayoutParams pp =
                 new LinearLayout.LayoutParams(
-                        -1,
-                        dp(130)
+                        -1,dp(120)
+                );
+
+        pp.setMargins(
+                0,dp(5),0,dp(5)
+        );
+
+        box.addView(preview,pp);
+
+        if (chosenImage[0] != null
+                && !chosenImage[0].isEmpty()) {
+
+            Bitmap bm =
+                    decodeImage(chosenImage[0]);
+
+            if (bm != null)
+                preview.setImageBitmap(bm);
+        }
+
+        // IMAGE BUTTON
+        Button imageButton =
+                editorButton(
+                        editing
+                                ? "Change Image"
+                                : "Add Image"
+                );
+
+        box.addView(
+                imageButton,
+                new LinearLayout.LayoutParams(
+                        -1,dp(48)
                 )
         );
 
-        box.addView(imageBtn);
+        // REMOVE IMAGE
+        Button removeImage =
+                editorButton("Remove Image");
 
-        if (edit)
-            box.addView(removeImage);
+        box.addView(
+                removeImage,
+                new LinearLayout.LayoutParams(
+                        -1,dp(44)
+                )
+        );
 
-        AlertDialog d =
+        imageButton.setOnClickListener(v -> {
+
+            pendingImageHolder = chosenImage;
+            pendingPreview = preview;
+            pendingImageButton = imageButton;
+
+            pickImage();
+        });
+
+        removeImage.setOnClickListener(v -> {
+
+            chosenImage[0] = "";
+
+            preview.setImageDrawable(null);
+
+            Toast.makeText(
+                    this,
+                    "Image removed",
+                    Toast.LENGTH_SHORT
+            ).show();
+        });
+
+        AlertDialog dialog =
                 new AlertDialog.Builder(this)
                         .setTitle(
-                                edit
+                                editing
                                         ? "Edit Achievement"
                                         : "New Achievement"
                         )
@@ -2229,105 +1645,297 @@ public class MainActivity extends Activity {
                         )
                         .create();
 
-        d.setOnShowListener(
-                x -> {
+        dialog.setOnShowListener(d -> {
 
-                    d.getButton(
+            Button save =
+                    dialog.getButton(
                             AlertDialog.BUTTON_POSITIVE
-                    ).setOnClickListener(
-                            v -> {
-
-                                String t =
-                                        title.getText()
-                                                .toString()
-                                                .trim();
-
-                                if (
-                                        t.length()
-                                                == 0
-                                ) {
-
-                                    title.setError(
-                                            "Enter a title"
-                                    );
-
-                                    return;
-                                }
-
-                                old.title = t;
-
-                                old.desc =
-                                        desc.getText()
-                                                .toString()
-                                                .trim();
-
-                                old.medal =
-                                        medals[
-                                                spinner
-                                                        .getSelectedItemPosition()
-                                        ];
-
-                                old.imagePath =
-                                        chosenImage[0];
-
-                                old.imageShape =
-                                        squareOption.isChecked()
-                                                ? "square"
-                                                : "circle";
-
-                                old.pinned =
-                                        pinBox.isChecked();
-
-                                if (!edit)
-                                    data.add(old);
-
-                                save();
-
-                                render();
-
-                                d.dismiss();
-                            }
                     );
-                }
-        );
 
-        d.show();
+            save.setOnClickListener(v -> {
+
+                String t =
+                        title.getText()
+                                .toString()
+                                .trim();
+
+                if (t.isEmpty()) {
+
+                    title.setError(
+                            "Enter a title"
+                    );
+
+                    return;
+                }
+
+                String selected =
+                        medals[
+                                medalSpinner
+                                        .getSelectedItemPosition()
+                        ];
+
+                if (editing) {
+
+                    old.title = t;
+                    old.desc =
+                            desc.getText()
+                                    .toString();
+
+                    old.medal = selected;
+                    old.imagePath =
+                            chosenImage[0];
+
+                    old.imageShape =
+                            chosenShape[0];
+
+                    old.pinned =
+                            pin.isChecked();
+
+                    old.customColor =
+                            chosenColor[0];
+
+                    old.backgroundMode =
+                            chosenMode[0];
+
+                } else {
+
+                    Achievement a =
+                            new Achievement(
+                                    t,
+                                    desc.getText()
+                                            .toString(),
+                                    selected,
+                                    false,
+                                    chosenImage[0],
+                                    chosenShape[0],
+                                    pin.isChecked()
+                            );
+
+                    a.customColor =
+                            chosenColor[0];
+
+                    a.backgroundMode =
+                            chosenMode[0];
+
+                    data.add(a);
+                }
+
+                save();
+                render();
+
+                dialog.dismiss();
+            });
+        });
+
+        dialog.show();
     }
 
-    void pickImage(
-            String[] chosen,
-            ImageView preview,
-            Button btn
+    Button editorButton(String text) {
+
+        Button b = new Button(this);
+
+        b.setText(text);
+        b.setTextSize(12);
+        b.setAllCaps(false);
+
+        b.setTypeface(
+                Typeface.create(
+                        "sans-serif-medium",
+                        Typeface.NORMAL
+                )
+        );
+
+        b.setTextColor(primaryText());
+
+        addPressAnimation(b);
+
+        return b;
+    }
+
+    String customizationText(String mode) {
+
+        if ("color".equals(mode))
+            return "Custom color selected";
+
+        if ("image".equals(mode))
+            return "Achievement image selected";
+
+        return "Default appearance";
+    }
+
+    // ---------------------------------------------------------
+    // COLOR PICKER
+    // ---------------------------------------------------------
+
+    void showColorPickerDialog(
+            Achievement old,
+            int[] chosenColor,
+            String[] chosenMode,
+            TextView modeText
     ) {
 
-        Intent i =
+        LinearLayout box =
+                new LinearLayout(this);
+
+        box.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
+        box.setPadding(
+                dp(18),dp(10),dp(18),dp(8)
+        );
+
+        final View colorPreview =
+                new View(this);
+
+        int starting =
+                chosenColor[0] != 0
+                        ? chosenColor[0]
+                        : Color.rgb(70,120,180);
+
+        colorPreview.setBackground(
+                rounded(starting,14)
+        );
+
+        box.addView(
+                colorPreview,
+                new LinearLayout.LayoutParams(
+                        -1,dp(70)
+                )
+        );
+
+        SeekBar red =
+                new SeekBar(this);
+
+        SeekBar green =
+                new SeekBar(this);
+
+        SeekBar blue =
+                new SeekBar(this);
+
+        red.setMax(255);
+        green.setMax(255);
+        blue.setMax(255);
+
+        red.setProgress(Color.red(starting));
+        green.setProgress(Color.green(starting));
+        blue.setProgress(Color.blue(starting));
+
+        TextView rLabel =
+                tv("Red",13,true);
+
+        TextView gLabel =
+                tv("Green",13,true);
+
+        TextView bLabel =
+                tv("Blue",13,true);
+
+        box.addView(rLabel);
+        box.addView(red);
+
+        box.addView(gLabel);
+        box.addView(green);
+
+        box.addView(bLabel);
+        box.addView(blue);
+
+        SeekBar.OnSeekBarChangeListener listener =
+                new SeekBar.OnSeekBarChangeListener() {
+
+                    void update() {
+
+                        int color =
+                                Color.rgb(
+                                        red.getProgress(),
+                                        green.getProgress(),
+                                        blue.getProgress()
+                                );
+
+                        colorPreview.setBackground(
+                                rounded(color,14)
+                        );
+                    }
+
+                    @Override
+                    public void onProgressChanged(
+                            SeekBar s,
+                            int p,
+                            boolean f
+                    ) {
+                        update();
+                    }
+
+                    @Override
+                    public void onStartTrackingTouch(
+                            SeekBar s
+                    ) {}
+
+                    @Override
+                    public void onStopTrackingTouch(
+                            SeekBar s
+                    ) {}
+                };
+
+        red.setOnSeekBarChangeListener(listener);
+        green.setOnSeekBarChangeListener(listener);
+        blue.setOnSeekBarChangeListener(listener);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Custom Color")
+                .setView(box)
+                .setNegativeButton(
+                        "Cancel",
+                        null
+                )
+                .setPositiveButton(
+                        "Apply",
+                        (d,w) -> {
+
+                            chosenColor[0] =
+                                    Color.rgb(
+                                            red.getProgress(),
+                                            green.getProgress(),
+                                            blue.getProgress()
+                                    );
+
+                            chosenMode[0] = "color";
+
+                            modeText.setText(
+                                    customizationText(
+                                            chosenMode[0]
+                                    )
+                            );
+                        }
+                )
+                .show();
+    }
+
+    // ---------------------------------------------------------
+    // IMAGE PICKER
+    // ---------------------------------------------------------
+
+    String[] pendingImageHolder;
+    ImageView pendingPreview;
+    Button pendingImageButton;
+
+    void pickImage() {
+
+        Intent intent =
                 new Intent(
                         Intent.ACTION_OPEN_DOCUMENT
                 );
 
-        i.setType("image/*");
+        intent.setType("image/*");
 
-        i.addCategory(
+        intent.addCategory(
                 Intent.CATEGORY_OPENABLE
         );
 
         startActivityForResult(
-                i,
+                intent,
                 77
         );
-
-        pendingImageHolder = chosen;
-
-        pendingPreview = preview;
-
-        pendingImageButton = btn;
     }
-
-    String[] pendingImageHolder;
-
-    ImageView pendingPreview;
-
-    Button pendingImageButton;
 
     @Override
     protected void onActivityResult(
@@ -2342,11 +1950,9 @@ public class MainActivity extends Activity {
                 dataIntent
         );
 
-        if (
-                requestCode != 77
-                        || resultCode != RESULT_OK
-                        || dataIntent == null
-        )
+        if (requestCode != 77 ||
+                resultCode != RESULT_OK ||
+                dataIntent == null)
             return;
 
         Uri uri =
@@ -2357,14 +1963,27 @@ public class MainActivity extends Activity {
 
         try {
 
-            Bitmap b =
-                    BitmapFactory.decodeStream(
-                            getContentResolver()
-                                    .openInputStream(uri)
-                    );
+            InputStream in =
+                    getContentResolver()
+                            .openInputStream(uri);
 
-            if (b != null)
-                showCropDialog(b);
+            Bitmap bitmap =
+                    BitmapFactory.decodeStream(in);
+
+            if (in != null)
+                in.close();
+
+            if (bitmap == null) {
+                Toast.makeText(
+                        this,
+                        "Could not load image",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                return;
+            }
+
+            showCropDialog(bitmap);
 
         } catch (Exception e) {
 
@@ -2376,15 +1995,18 @@ public class MainActivity extends Activity {
         }
     }
 
-    void showCropDialog(
-            Bitmap source
-    ) {
+    void showCropDialog(Bitmap source) {
 
-        final CropView crop =
-                new CropView(
-                        this,
-                        source
-                );
+        CropView crop =
+                new CropView(this,source);
+
+        SeekBar zoom =
+                new SeekBar(this);
+
+        zoom.setMax(100);
+        zoom.setProgress(50);
+
+        crop.zoomBar = zoom;
 
         LinearLayout box =
                 new LinearLayout(this);
@@ -2394,358 +2016,252 @@ public class MainActivity extends Activity {
         );
 
         box.setPadding(
-                dp(10),
-                0,
-                dp(10),
-                0
+                dp(8),dp(5),dp(8),0
         );
 
         box.addView(
                 crop,
                 new LinearLayout.LayoutParams(
-                        -1,
-                        dp(280)
+                        -1,dp(300)
                 )
-        );
-
-        TextView hint =
-                tv(
-                        "Crop amount",
-                        15,
-                        secondaryText()
-                );
-
-        hint.setGravity(
-                Gravity.CENTER
         );
 
         box.addView(
-                hint,
+                zoom,
                 new LinearLayout.LayoutParams(
-                        -1,
-                        dp(36)
+                        -1,dp(48)
                 )
         );
 
-        SeekBar seek =
-                new SeekBar(this);
+        new AlertDialog.Builder(this)
+                .setTitle("Crop Image")
+                .setView(box)
+                .setNegativeButton(
+                        "Cancel",
+                        null
+                )
+                .setPositiveButton(
+                        "Use Image",
+                        (d,w) -> {
 
-        seek.setMax(70);
+                            Bitmap result =
+                                    crop.getCroppedBitmap();
 
-        seek.setProgress(35);
+                            String path =
+                                    saveBitmap(result);
 
-        seek.setOnSeekBarChangeListener(
-                new SeekBar.OnSeekBarChangeListener() {
+                            if (path != null) {
 
-                    public void onProgressChanged(
-                            SeekBar s,
-                            int p,
-                            boolean f
-                    ) {
+                                if (pendingImageHolder != null)
+                                    pendingImageHolder[0] = path;
 
-                        crop.setCropFraction(
-                                .25f
-                                        + .7f
-                                        * (
-                                            p
-                                                    / 70f
-                                        )
-                        );
-                    }
+                                if (pendingPreview != null)
+                                    pendingPreview
+                                            .setImageBitmap(result);
 
-                    public void onStartTrackingTouch(
-                            SeekBar s
-                    ) {
-                    }
-
-                    public void onStopTrackingTouch(
-                            SeekBar s
-                    ) {
-                    }
-                }
-        );
-
-        box.addView(seek);
-
-        AlertDialog d =
-                new AlertDialog.Builder(this)
-                        .setTitle(
-                                "Crop image"
-                        )
-                        .setMessage(
-                                "Move the slider to choose how much of the image stays visible."
-                        )
-                        .setView(box)
-                        .setNegativeButton(
-                                "Cancel",
-                                null
-                        )
-                        .setPositiveButton(
-                                "Use image",
-                                null
-                        )
-                        .create();
-
-        d.setOnShowListener(
-                x ->
-                        d.getButton(
-                                AlertDialog.BUTTON_POSITIVE
-                        ).setOnClickListener(
-                                v -> {
-
-                                    Bitmap out =
-                                            crop.getCroppedBitmap();
-
-                                    try {
-
-                                        File f =
-                                                new File(
-                                                        getFilesDir(),
-                                                        "ach_"
-                                                                + System.currentTimeMillis()
-                                                                + ".jpg"
-                                                );
-
-                                        FileOutputStream os =
-                                                new FileOutputStream(
-                                                        f
-                                                );
-
-                                        out.compress(
-                                                Bitmap.CompressFormat.JPEG,
-                                                90,
-                                                os
-                                        );
-
-                                        os.close();
-
-                                        pendingImageHolder[0] =
-                                                f.getAbsolutePath();
-
-                                        pendingPreview
-                                                .setImageBitmap(
-                                                        out
-                                                );
-
-                                        pendingImageButton
-                                                .setText(
-                                                        "Change image"
-                                                );
-
-                                        d.dismiss();
-
-                                    } catch (
-                                            Exception e
-                                    ) {
-
-                                        Toast.makeText(
-                                                this,
-                                                "Could not save image",
-                                                Toast.LENGTH_SHORT
-                                        ).show();
-                                    }
-                                }
-                        )
-        );
-
-        d.show();
+                                if (pendingImageButton != null)
+                                    pendingImageButton
+                                            .setText("Change Image");
+                            }
+                        }
+                )
+                .show();
     }
+
+    String saveBitmap(Bitmap bitmap) {
+
+        if (bitmap == null)
+            return null;
+
+        File file =
+                new File(
+                        getFilesDir(),
+                        "ach_" +
+                                System.currentTimeMillis() +
+                                ".jpg"
+                );
+
+        try {
+
+            FileOutputStream out =
+                    new FileOutputStream(file);
+
+            bitmap.compress(
+                    Bitmap.CompressFormat.JPEG,
+                    92,
+                    out
+            );
+
+            out.flush();
+            out.close();
+
+            return file.getAbsolutePath();
+
+        } catch (Exception e) {
+
+            return null;
+        }
+    }
+
+    Bitmap decodeImage(String path) {
+
+        try {
+
+            if (path == null ||
+                    path.isEmpty())
+                return null;
+
+            return BitmapFactory.decodeFile(path);
+
+        } catch (Exception e) {
+
+            return null;
+        }
+    }
+
+    // ---------------------------------------------------------
+    // CROP VIEW
+    // ---------------------------------------------------------
 
     class CropView extends View {
 
-        Bitmap bmp;
+        Bitmap bitmap;
+        Paint paint =
+                new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        Paint p =
-                new Paint(
-                        Paint.ANTI_ALIAS_FLAG
-                );
+        float offsetX = 0;
+        float offsetY = 0;
 
-        float fraction = .6f;
+        float scale = 1f;
 
         float downX;
         float downY;
 
-        float offsetX;
-        float offsetY;
+        SeekBar zoomBar;
 
         CropView(
-                Context c,
+                Context context,
                 Bitmap b
         ) {
 
-            super(c);
+            super(context);
 
-            bmp = b;
+            bitmap = b;
 
-            p.setFilterBitmap(true);
+            setBackgroundColor(Color.BLACK);
+
+            setLayerType(
+                    View.LAYER_TYPE_SOFTWARE,
+                    null
+            );
         }
 
-        void setCropFraction(
-                float f
-        ) {
+        @Override
+        protected void onDraw(Canvas canvas) {
 
-            fraction = f;
+            super.onDraw(canvas);
 
-            invalidate();
-        }
+            if (bitmap == null)
+                return;
 
-        protected void onDraw(
-                Canvas c
-        ) {
+            float vw = getWidth();
+            float vh = getHeight();
 
-            super.onDraw(c);
-
-            float scale =
+            float base =
                     Math.max(
-                            getWidth()
-                                    / (float) bmp.getWidth(),
-                            getHeight()
-                                    / (float) bmp.getHeight()
+                            vw / bitmap.getWidth(),
+                            vh / bitmap.getHeight()
                     );
 
+            float finalScale =
+                    base * (0.7f + scale * 1.3f);
+
             float w =
-                    bmp.getWidth()
-                            * scale;
+                    bitmap.getWidth() *
+                            finalScale;
 
             float h =
-                    bmp.getHeight()
-                            * scale;
+                    bitmap.getHeight() *
+                            finalScale;
 
             float left =
-                    (getWidth() - w) / 2
-                            + offsetX;
+                    (vw-w)/2f + offsetX;
 
             float top =
-                    (getHeight() - h) / 2
-                            + offsetY;
+                    (vh-h)/2f + offsetY;
 
-            c.drawBitmap(
-                    bmp,
-                    null,
+            RectF dst =
                     new RectF(
                             left,
                             top,
-                            left + w,
-                            top + h
-                    ),
-                    p
+                            left+w,
+                            top+h
+                    );
+
+            paint.setFilterBitmap(true);
+
+            canvas.drawBitmap(
+                    bitmap,
+                    null,
+                    dst,
+                    paint
             );
 
-            float size =
-                    Math.min(
-                            getWidth(),
-                            getHeight()
-                    ) * fraction;
-
-            float cx =
-                    getWidth() / 2f
-                            + offsetX;
-
-            float cy =
-                    getHeight() / 2f
-                            + offsetY;
-
-            p.setColor(
-                    0x99000000
-            );
-
-            p.setStyle(
-                    Paint.Style.FILL
-            );
-
-            c.drawRect(
-                    0,
-                    0,
-                    getWidth(),
-                    Math.max(
-                            0,
-                            cy - size / 2
-                    ),
-                    p
-            );
-
-            c.drawRect(
-                    0,
-                    cy + size / 2,
-                    getWidth(),
-                    getHeight(),
-                    p
-            );
-
-            c.drawRect(
-                    0,
-                    cy - size / 2,
-                    Math.max(
-                            0,
-                            cx - size / 2
-                    ),
-                    cy + size / 2,
-                    p
-            );
-
-            c.drawRect(
-                    cx + size / 2,
-                    cy - size / 2,
-                    getWidth(),
-                    cy + size / 2,
-                    p
-            );
-
-            p.setColor(
-                    Color.WHITE
-            );
-
-            p.setStyle(
+            paint.setStyle(
                     Paint.Style.STROKE
             );
 
-            p.setStrokeWidth(
-                    dp(2)
+            paint.setStrokeWidth(dp(2));
+
+            paint.setColor(Color.WHITE);
+
+            float size =
+                    Math.min(vw,vh)-dp(24);
+
+            float l =
+                    (vw-size)/2f;
+
+            float t =
+                    (vh-size)/2f;
+
+            canvas.drawRect(
+                    l,t,l+size,t+size,
+                    paint
             );
 
-            c.drawRect(
-                    cx - size / 2,
-                    cy - size / 2,
-                    cx + size / 2,
-                    cy + size / 2,
-                    p
-            );
-
-            p.setStyle(
+            paint.setStyle(
                     Paint.Style.FILL
             );
         }
 
+        @Override
         public boolean onTouchEvent(
-                android.view.MotionEvent e
+                MotionEvent event
         ) {
 
-            if (
-                    e.getAction()
-                            == MotionEvent.ACTION_DOWN
-            ) {
+            if (event.getAction()
+                    == MotionEvent.ACTION_DOWN) {
 
-                downX = e.getX();
-
-                downY = e.getY();
+                downX = event.getX();
+                downY = event.getY();
 
                 return true;
             }
 
-            if (
-                    e.getAction()
-                            == MotionEvent.ACTION_MOVE
-            ) {
+            if (event.getAction()
+                    == MotionEvent.ACTION_MOVE) {
 
-                offsetX +=
-                        e.getX() - downX;
+                float dx =
+                        event.getX()-downX;
 
-                offsetY +=
-                        e.getY() - downY;
+                float dy =
+                        event.getY()-downY;
 
-                downX = e.getX();
+                offsetX += dx;
+                offsetY += dy;
 
-                downY = e.getY();
+                downX = event.getX();
+                downY = event.getY();
 
                 invalidate();
 
@@ -2757,191 +2273,166 @@ public class MainActivity extends Activity {
 
         Bitmap getCroppedBitmap() {
 
-            float scale =
-                    Math.max(
-                            getWidth()
-                                    / (float) bmp.getWidth(),
-                            getHeight()
-                                    / (float) bmp.getHeight()
-                    );
-
-            float w =
-                    bmp.getWidth()
-                            * scale;
-
-            float h =
-                    bmp.getHeight()
-                            * scale;
-
-            float left =
-                    (getWidth() - w) / 2
-                            + offsetX;
-
-            float top =
-                    (getHeight() - h) / 2
-                            + offsetY;
-
             float size =
                     Math.min(
                             getWidth(),
                             getHeight()
-                    ) * fraction;
+                    ) - dp(24);
 
-            float cx =
-                    getWidth() / 2f
-                            + offsetX;
-
-            float cy =
-                    getHeight() / 2f
-                            + offsetY;
-
-            float sx =
-                    (
-                            cx
-                                    - size / 2
-                                    - left
-                    ) / scale;
-
-            float sy =
-                    (
-                            cy
-                                    - size / 2
-                                    - top
-                    ) / scale;
-
-            float ss =
-                    size / scale;
-
-            sx =
-                    Math.max(
-                            0,
-                            Math.min(
-                                    bmp.getWidth() - ss,
-                                    sx
-                            )
+            Bitmap result =
+                    Bitmap.createBitmap(
+                            (int)size,
+                            (int)size,
+                            Bitmap.Config.ARGB_8888
                     );
 
-            sy =
+            Canvas canvas =
+                    new Canvas(result);
+
+            float vw = getWidth();
+            float vh = getHeight();
+
+            float base =
                     Math.max(
-                            0,
-                            Math.min(
-                                    bmp.getHeight() - ss,
-                                    sy
-                            )
+                            vw / bitmap.getWidth(),
+                            vh / bitmap.getHeight()
                     );
 
-            return Bitmap.createBitmap(
-                    bmp,
-                    (int) sx,
-                    (int) sy,
-                    Math.max(
-                            1,
-                            (int) ss
+            float finalScale =
+                    base * (0.7f + scale * 1.3f);
+
+            float w =
+                    bitmap.getWidth() *
+                            finalScale;
+
+            float h =
+                    bitmap.getHeight() *
+                            finalScale;
+
+            float left =
+                    (vw-w)/2f + offsetX;
+
+            float top =
+                    (vh-h)/2f + offsetY;
+
+            float cropLeft =
+                    (vw-size)/2f;
+
+            float cropTop =
+                    (vh-size)/2f;
+
+            float drawLeft =
+                    left-cropLeft;
+
+            float drawTop =
+                    top-cropTop;
+
+            paint.setFilterBitmap(true);
+
+            canvas.drawBitmap(
+                    bitmap,
+                    null,
+                    new RectF(
+                            drawLeft,
+                            drawTop,
+                            drawLeft+w,
+                            drawTop+h
                     ),
-                    Math.max(
-                            1,
-                            (int) ss
-                    )
+                    paint
             );
+
+            return result;
         }
     }
 
-    void showMenu(
-            View anchor
-    ) {
+    // ---------------------------------------------------------
+    // DELETE
+    // ---------------------------------------------------------
 
-        PopupMenu pm =
-                new PopupMenu(
-                        this,
-                        anchor
-                );
+    void confirmDelete(int index) {
 
-        pm.getMenu().add(
-                "Add Achievement"
-        );
+        if (index < 0 ||
+                index >= data.size())
+            return;
 
-        pm.getMenu().add(
-                "Reset all completion"
-        );
+        Achievement a =
+                data.get(index);
 
-        pm.getMenu().add(
-                "Delete all"
-        );
-
-        pm.setOnMenuItemClickListener(
-                item -> {
-
-                    String s =
-                            item.getTitle()
-                                    .toString();
-
-                    if (
-                            s.equals(
-                                    "Add Achievement"
-                            )
-                    ) {
-
-                        showEditor(-1);
-
-                    } else if (
-                            s.equals(
-                                    "Reset all completion"
-                            )
-                    ) {
-
-                        for (Achievement a : data)
-                            a.done = false;
-
-                        save();
-
-                        render();
-
-                    } else if (
-                            s.equals(
-                                    "Delete all"
-                            )
-                    ) {
-
-                        new AlertDialog.Builder(this)
-                                .setTitle(
-                                        "Delete all?"
-                                )
-                                .setMessage(
-                                        "This cannot be undone."
-                                )
-                                .setNegativeButton(
-                                        "Cancel",
-                                        null
-                                )
-                                .setPositiveButton(
-                                        "Delete",
-                                        (d,w) -> {
-
-                                            data.clear();
-
-                                            save();
-
-                                            render();
-                                        }
-                                )
-                                .show();
-                    }
-
-                    return true;
-                }
-        );
-
-        pm.show();
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Achievement?")
+                .setMessage(
+                        "Delete \"" +
+                                a.title +
+                                "\"?"
+                )
+                .setNegativeButton(
+                        "Cancel",
+                        null
+                )
+                .setPositiveButton(
+                        "Delete",
+                        (d,w) ->
+                                animateDelete(index)
+                )
+                .show();
     }
 
-    void showSideMenu() {
+    void animateDelete(int index) {
 
-        final Dialog dialog =
-                new Dialog(this);
+        if (index < 0 ||
+                index >= data.size())
+            return;
 
-        dialog.requestWindowFeature(
-                Window.FEATURE_NO_TITLE
-        );
+        Achievement target =
+                data.get(index);
+
+        View card = null;
+
+        for (int i=0;i<list.getChildCount();i++) {
+
+            View v =
+                    list.getChildAt(i);
+
+            if (v.getTag() == target) {
+                card = v;
+                break;
+            }
+        }
+
+        if (card == null) {
+
+            data.remove(index);
+            save();
+            render();
+
+            return;
+        }
+
+        card.animate()
+                .alpha(0)
+                .translationX(dp(60))
+                .setDuration(180)
+                .withEndAction(() -> {
+
+                    data.remove(index);
+
+                    save();
+                    render();
+
+                })
+                .start();
+    }
+
+    // ---------------------------------------------------------
+    // MENU
+    // ---------------------------------------------------------
+
+    void showMenu() {
+
+        PopupWindow popup =
+                new PopupWindow(
+                        this
+                );
 
         LinearLayout box =
                 new LinearLayout(this);
@@ -2951,407 +2442,222 @@ public class MainActivity extends Activity {
         );
 
         box.setPadding(
-                dp(20),
-                dp(18),
-                dp(20),
-                dp(18)
+                dp(8),dp(8),dp(8),dp(8)
         );
 
-        GradientDrawable panel =
-                new GradientDrawable();
-
-        panel.setColor(
-                panelColor()
-        );
-
-        panel.setCornerRadii(
-                new float[]{
-                        0,0,
-                        dp(22),dp(22),
-                        dp(22),dp(22),
-                        0,0
-                }
-        );
-
-        box.setBackground(panel);
-
-        TextView h =
-                tv(
-                        "My Achievements",
-                        23,
-                        primaryText()
-                );
-
-        h.setTypeface(
-                android.graphics.Typeface.create(
-                        "sans-serif-medium",
-                        android.graphics.Typeface.NORMAL
+        box.setBackground(
+                rounded(
+                        isLight()
+                                ? Color.WHITE
+                                : Color.rgb(50,53,58),
+                        16
                 )
         );
 
-        box.addView(
-                h,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(58)
-                )
+        TextView add =
+                rowButton("Add Achievement");
+
+        TextView reset =
+                rowButton("Reset completion");
+
+        TextView deleteAll =
+                rowButton("Delete all");
+
+        box.addView(add);
+        box.addView(reset);
+        box.addView(deleteAll);
+
+        add.setOnClickListener(v -> {
+
+            popup.dismiss();
+            showEditor(-1);
+
+        });
+
+        reset.setOnClickListener(v -> {
+
+            popup.dismiss();
+
+            for (Achievement a : data)
+                a.done = false;
+
+            save();
+            render();
+        });
+
+        deleteAll.setOnClickListener(v -> {
+
+            popup.dismiss();
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Delete all achievements?")
+                    .setMessage(
+                            "This cannot be undone."
+                    )
+                    .setNegativeButton(
+                            "Cancel",
+                            null
+                    )
+                    .setPositiveButton(
+                            "Delete all",
+                            (d,w) -> {
+
+                                data.clear();
+
+                                save();
+                                render();
+                            }
+                    )
+                    .show();
+        });
+
+        popup.setContentView(box);
+
+        popup.setWidth(dp(220));
+        popup.setHeight(
+                WindowManager.LayoutParams.WRAP_CONTENT
         );
 
-        TextView sub =
-                tv(
-                        "Manage your achievements",
-                        13,
-                        secondaryText()
-                );
+        popup.setBackgroundDrawable(
+                new ColorDrawable(Color.TRANSPARENT)
+        );
 
-        sub.setGravity(
+        popup.setOutsideTouchable(true);
+        popup.setFocusable(true);
+
+        popup.setElevation(dp(12));
+
+        popup.showAtLocation(
+                findViewById(android.R.id.content),
+                Gravity.TOP | Gravity.RIGHT,
+                dp(12),
+                dp(65)
+        );
+    }
+
+    TextView rowButton(String text) {
+
+        TextView b =
+                tv(text,14,true);
+
+        b.setGravity(
                 Gravity.CENTER_VERTICAL
         );
 
-        box.addView(
-                sub,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(34)
+        b.setPadding(
+                dp(14),0,dp(14),0
+        );
+
+        b.setBackground(
+                rounded(
+                        Color.TRANSPARENT,
+                        10
                 )
         );
 
-        View line =
-                new View(this);
+        addPressAnimation(b);
 
-        line.setBackgroundColor(
-                isLight()
-                        ? Color.rgb(
-                                215,
-                                217,
-                                222
-                        )
-                        : Color.rgb(
-                                75,
-                                78,
-                                83
-                        )
+        return b;
+    }
+
+    // ---------------------------------------------------------
+    // SIDE MENU
+    // ---------------------------------------------------------
+
+    void showSideMenu() {
+
+        final PopupWindow popup =
+                new PopupWindow(this);
+
+        LinearLayout box =
+                new LinearLayout(this);
+
+        box.setOrientation(
+                LinearLayout.VERTICAL
         );
 
-        LinearLayout.LayoutParams lineLp =
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(1)
-                );
-
-        lineLp.setMargins(
-                0,
-                dp(8),
-                0,
-                dp(12)
+        box.setPadding(
+                dp(15),dp(25),dp(15),dp(20)
         );
 
-        box.addView(
-                line,
-                lineLp
+        box.setBackground(
+                rounded(
+                        isLight()
+                                ? Color.WHITE
+                                : Color.rgb(45,48,53),
+                        20
+                )
         );
 
-        /*
-         * SETTINGS
-         */
-        TextView settings =
-                rowButton(
-                        "⚙",
-                        "Settings"
-                );
+        TextView title =
+                tv("My Achievements",20,true);
 
-        settings.setOnClickListener(
-                v -> {
-
-                    animateSideMenuClose(
-                            box,
-                            dialog,
-                            () -> showSettings()
-                    );
-                }
+        title.setPadding(
+                dp(8),dp(5),dp(8),dp(20)
         );
 
-        LinearLayout.LayoutParams sp =
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(54)
-                );
+        box.addView(title);
 
-        sp.setMargins(
-                0,
-                0,
-                0,
-                dp(8)
-        );
-
-        box.addView(
-                settings,
-                sp
-        );
-
-        /*
-         * ADD
-         */
         TextView add =
-                rowButton(
-                        "＋",
-                        "Add Achievement"
-                );
+                rowButton("＋  Add Achievement");
 
-        add.setOnClickListener(
-                v -> {
+        TextView settings =
+                rowButton("⚙  Settings");
 
-                    animateSideMenuClose(
-                            box,
-                            dialog,
-                            () -> showEditor(-1)
-                    );
-                }
-        );
-
-        LinearLayout.LayoutParams ap =
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(54)
-                );
-
-        ap.setMargins(
-                0,
-                0,
-                0,
-                dp(8)
-        );
-
-        box.addView(
-                add,
-                ap
-        );
-
-        /*
-         * CLOSE
-         */
         TextView close =
-                rowButton(
-                        "×",
-                        "Close"
-                );
+                rowButton("×  Close");
+
+        box.addView(add);
+        box.addView(settings);
+        box.addView(close);
+
+        add.setOnClickListener(v -> {
+
+            popup.dismiss();
+            showEditor(-1);
+
+        });
+
+        settings.setOnClickListener(v -> {
+
+            popup.dismiss();
+            showSettings();
+
+        });
 
         close.setOnClickListener(
-                v ->
-                        animateSideMenuClose(
-                                box,
-                                dialog,
-                                null
-                        )
+                v -> popup.dismiss()
         );
 
-        box.addView(
-                close,
-                new LinearLayout.LayoutParams(
-                        -1,
-                        dp(54)
-                )
+        popup.setContentView(box);
+
+        popup.setWidth(dp(280));
+        popup.setHeight(
+                WindowManager.LayoutParams.MATCH_PARENT
         );
 
-        dialog.setContentView(box);
-
-        dialog.setCanceledOnTouchOutside(true);
-
-        dialog.setCancelable(true);
-
-        dialog.setOnShowListener(
-                x -> {
-
-                    Window w =
-                            dialog.getWindow();
-
-                    if (w != null) {
-
-                        w.setBackgroundDrawable(
-                                new android.graphics.drawable.ColorDrawable(
-                                        Color.TRANSPARENT
-                                )
-                        );
-
-                        WindowManager.LayoutParams lp =
-                                w.getAttributes();
-
-                        lp.width =
-                                dp(320);
-
-                        lp.height =
-                                WindowManager.LayoutParams.MATCH_PARENT;
-
-                        lp.gravity =
-                                Gravity.LEFT
-                                        | Gravity.TOP;
-
-                        w.setAttributes(lp);
-
-                        w.setDimAmount(.55f);
-
-                        w.addFlags(
-                                WindowManager.LayoutParams.FLAG_DIM_BEHIND
-                        );
-
-                        /*
-                         * PANEL ENTRY
-                         */
-                        box.setTranslationX(
-                                -dp(320)
-                        );
-
-                        box.setAlpha(.96f);
-
-                        box.animate()
-                                .translationX(0)
-                                .setDuration(280)
-                                .setInterpolator(
-                                        new DecelerateInterpolator(
-                                                1.5f
-                                        )
-                                )
-                                .start();
-
-                        /*
-                         * ITEMS ENTRY
-                         */
-                        View[] items = {
-                                settings,
-                                add,
-                                close
-                        };
-
-                        for (
-                                int i = 0;
-                                i < items.length;
-                                i++
-                        ) {
-
-                            View item =
-                                    items[i];
-
-                            item.setAlpha(0f);
-
-                            item.setTranslationX(
-                                    -dp(28)
-                            );
-
-                            item.setScaleX(.96f);
-                            item.setScaleY(.96f);
-
-                            final int delay =
-                                    110
-                                            + i * 75;
-
-                            item.postDelayed(
-                                    () -> {
-
-                                        item.animate()
-                                                .alpha(1f)
-                                                .translationX(0)
-                                                .scaleX(1f)
-                                                .scaleY(1f)
-                                                .setDuration(230)
-                                                .setInterpolator(
-                                                        new DecelerateInterpolator(
-                                                                1.4f
-                                                        )
-                                                )
-                                                .start();
-
-                                    },
-                                    delay
-                            );
-                        }
-                    }
-                }
+        popup.setBackgroundDrawable(
+                new ColorDrawable(Color.TRANSPARENT)
         );
 
-        dialog.show();
+        popup.setOutsideTouchable(true);
+        popup.setFocusable(true);
+
+        popup.setAnimationStyle(
+                android.R.style.Animation_Dialog
+        );
+
+        popup.showAtLocation(
+                findViewById(android.R.id.content),
+                Gravity.LEFT | Gravity.TOP,
+                dp(8),
+                dp(8)
+        );
     }
 
-    void animateSideMenuClose(
-            final View box,
-            final Dialog dialog,
-            final Runnable next
-    ) {
-
-        box.animate()
-                .translationX(-dp(320))
-                .alpha(.7f)
-                .setDuration(180)
-                .setInterpolator(
-                        new AccelerateInterpolator()
-                )
-                .withEndAction(
-                        () -> {
-
-                            dialog.dismiss();
-
-                            if (next != null)
-                                next.run();
-                        }
-                )
-                .start();
-    }
-
-    TextView rowButton(
-            String icon,
-            String label
-    ) {
-
-        TextView r =
-                tv(
-                        icon
-                                + "    "
-                                + label,
-                        16,
-                        primaryText()
-                );
-
-        r.setTypeface(
-                android.graphics.Typeface.create(
-                        "sans-serif-medium",
-                        android.graphics.Typeface.NORMAL
-                )
-        );
-
-        r.setGravity(
-                Gravity.CENTER_VERTICAL
-                        | Gravity.LEFT
-        );
-
-        r.setPadding(
-                dp(10),
-                0,
-                dp(10),
-                0
-        );
-
-        addPressAnimation(r);
-
-        GradientDrawable g =
-                new GradientDrawable();
-
-        g.setColor(
-                isLight()
-                        ? Color.WHITE
-                        : Color.rgb(
-                                52,
-                                55,
-                                60
-                        )
-        );
-
-        g.setCornerRadius(
-                dp(14)
-        );
-
-        r.setBackground(g);
-
-        return r;
-    }
+    // ---------------------------------------------------------
+    // SETTINGS
+    // ---------------------------------------------------------
 
     void showSettings() {
 
@@ -3363,28 +2669,54 @@ public class MainActivity extends Activity {
         );
 
         box.setPadding(
-                dp(18),
-                dp(5),
-                dp(18),
-                0
+                dp(18),dp(5),dp(18),0
         );
 
-        Button theme =
-                new Button(this);
+        Switch theme =
+                new Switch(this);
 
-        theme.setText(
-                isLight()
-                        ? "Switch to Dark Mode"
-                        : "Switch to Day Mode"
+        theme.setText("Day mode");
+        theme.setTextColor(primaryText());
+        theme.setChecked(isLight());
+
+        box.addView(
+                theme,
+                new LinearLayout.LayoutParams(
+                        -1,dp(55)
+                )
         );
 
-        theme.setOnClickListener(
-                v -> {
+        Button pin =
+                editorButton(
+                        hasPin()
+                                ? "Change PIN"
+                                : "Set PIN"
+                );
+
+        box.addView(
+                pin,
+                new LinearLayout.LayoutParams(
+                        -1,dp(50)
+                )
+        );
+
+        Button removePin =
+                editorButton("Remove PIN");
+
+        box.addView(
+                removePin,
+                new LinearLayout.LayoutParams(
+                        -1,dp(50)
+                )
+        );
+
+        theme.setOnCheckedChangeListener(
+                (button,checked) -> {
 
                     prefs.edit()
                             .putBoolean(
                                     "lightMode",
-                                    !isLight()
+                                    checked
                             )
                             .apply();
 
@@ -3392,479 +2724,272 @@ public class MainActivity extends Activity {
                 }
         );
 
-        box.addView(theme);
-
-        Button pin =
-                new Button(this);
-
-        pin.setText(
-                hasPin()
-                        ? "Change / Remove PIN"
-                        : "Set PIN"
-        );
-
         pin.setOnClickListener(
-                v -> showPinSettings()
+                v -> showPinSetDialog()
         );
 
-        box.addView(pin);
+        removePin.setOnClickListener(v -> {
+
+            prefs.edit()
+                    .remove("pin")
+                    .apply();
+
+            Toast.makeText(
+                    this,
+                    "PIN removed",
+                    Toast.LENGTH_SHORT
+            ).show();
+        });
 
         new AlertDialog.Builder(this)
-                .setTitle(
-                        "Settings"
-                )
+                .setTitle("Settings")
                 .setView(box)
-                .setNegativeButton(
+                .setPositiveButton(
                         "Close",
                         null
                 )
                 .show();
     }
 
+    // ---------------------------------------------------------
+    // PIN
+    // ---------------------------------------------------------
+
     boolean hasPin() {
 
-        return prefs.getString(
-                "pin",
-                ""
-        ).length() > 0;
+        String p =
+                prefs.getString("pin","");
+
+        return p != null &&
+                !p.isEmpty();
     }
 
-    void showPinSettings() {
+    void showPinSetDialog() {
 
-        if (hasPin()) {
+        LinearLayout box =
+                new LinearLayout(this);
 
-            new AlertDialog.Builder(this)
-                    .setTitle("PIN")
-                    .setItems(
-                            new String[]{
-                                    "Change PIN",
-                                    "Remove PIN"
-                            },
-                            (d,w) -> {
+        box.setOrientation(
+                LinearLayout.VERTICAL
+        );
 
-                                if (w == 0) {
+        box.setPadding(
+                dp(18),dp(5),dp(18),0
+        );
 
-                                    showPinPad(
-                                            "Change PIN",
-                                            false,
-                                            p -> savePin(p)
-                                    );
+        EditText pin =
+                new EditText(this);
 
-                                } else {
+        pin.setHint("4 digit PIN");
+        pin.setInputType(
+                InputType.TYPE_CLASS_NUMBER |
+                InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        );
 
-                                    prefs.edit()
-                                            .remove("pin")
-                                            .apply();
+        pin.setMaxLength(4);
 
-                                    Toast.makeText(
-                                            this,
-                                            "PIN removed",
-                                            Toast.LENGTH_SHORT
-                                    ).show();
-                                }
-                            }
-                    )
-                    .show();
-
-        } else {
-
-            showPinPad(
-                    "Set PIN",
-                    false,
-                    p -> savePin(p)
-            );
-        }
-    }
-
-    void savePin(
-            String p
-    ) {
-
-        if (
-                p.length() < 4
-                        || p.length() > 8
-        ) {
-
-            Toast.makeText(
-                    this,
-                    "PIN must be 4 to 8 digits",
-                    Toast.LENGTH_SHORT
-            ).show();
-
-            return;
-        }
-
-        prefs.edit()
-                .putString(
-                        "pin",
-                        p
+        box.addView(
+                pin,
+                new LinearLayout.LayoutParams(
+                        -1,dp(55)
                 )
-                .apply();
+        );
 
-        Toast.makeText(
-                this,
-                "PIN saved",
-                Toast.LENGTH_SHORT
-        ).show();
-    }
+        new AlertDialog.Builder(this)
+                .setTitle("Set PIN")
+                .setView(box)
+                .setNegativeButton(
+                        "Cancel",
+                        null
+                )
+                .setPositiveButton(
+                        "Save",
+                        (d,w) -> {
 
-    interface PinCallback {
-        void done(String pin);
+                            String value =
+                                    pin.getText()
+                                            .toString();
+
+                            if (value.length() != 4) {
+
+                                Toast.makeText(
+                                        this,
+                                        "PIN must contain 4 digits.",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+
+                                return;
+                            }
+
+                            prefs.edit()
+                                    .putString(
+                                            "pin",
+                                            value
+                                    )
+                                    .apply();
+
+                            Toast.makeText(
+                                    this,
+                                    "PIN saved.",
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+                )
+                .show();
     }
 
     void showPinGate() {
 
-        showPinPad(
-                "Enter PIN",
-                true,
-                p -> {
-
-                    if (
-                            p.equals(
-                                    prefs.getString(
-                                            "pin",
-                                            ""
-                                    )
-                            )
-                    ) {
-
-                    } else {
-
-                        Toast.makeText(
-                                this,
-                                "Wrong PIN",
-                                Toast.LENGTH_SHORT
-                        ).show();
-                    }
-                }
-        );
-    }
-
-    void showPinPad(
-            String title,
-            boolean gate,
-            PinCallback callback
-    ) {
-
         final Dialog dialog =
                 new Dialog(this);
 
-        dialog.requestWindowFeature(
-                Window.FEATURE_NO_TITLE
-        );
+        dialog.setCancelable(false);
 
-        LinearLayout root =
+        LinearLayout box =
                 new LinearLayout(this);
 
-        root.setOrientation(
+        box.setOrientation(
                 LinearLayout.VERTICAL
         );
 
-        root.setGravity(
-                Gravity.CENTER_HORIZONTAL
+        box.setGravity(Gravity.CENTER);
+        box.setPadding(
+                dp(30),dp(35),dp(30),dp(35)
         );
 
-        root.setPadding(
-                dp(28),
-                dp(34),
-                dp(28),
-                dp(28)
+        box.setBackground(
+                rounded(bg(),20)
         );
 
-        root.setBackgroundColor(
-                bg()
-        );
+        TextView title =
+                tv("🔒",38,true);
 
-        TextView heading =
-                tv(
-                        title,
-                        27,
-                        primaryText()
-                );
+        title.setGravity(Gravity.CENTER);
 
-        heading.setGravity(
-                Gravity.CENTER
-        );
-
-        root.addView(
-                heading,
+        box.addView(
+                title,
                 new LinearLayout.LayoutParams(
-                        -1,
-                        dp(60)
+                        -1,dp(65)
                 )
         );
 
-        TextView dots =
-                tv(
-                        "",
-                        25,
-                        primaryText()
-                );
+        TextView text =
+                tv("Enter your PIN",18,true);
 
-        dots.setGravity(
-                Gravity.CENTER
-        );
+        text.setGravity(Gravity.CENTER);
 
-        root.addView(
-                dots,
+        box.addView(
+                text,
                 new LinearLayout.LayoutParams(
-                        -1,
-                        dp(58)
+                        -1,dp(50)
                 )
         );
 
-        final StringBuilder pin =
-                new StringBuilder();
+        EditText input =
+                new EditText(this);
 
-        View.OnClickListener digit =
-                v -> {
+        input.setInputType(
+                InputType.TYPE_CLASS_NUMBER |
+                InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        );
 
-                    if (pin.length() < 8) {
+        input.setGravity(Gravity.CENTER);
+        input.setTextSize(24);
+        input.setMaxLength(4);
 
-                        pin.append(
-                                ((TextView) v)
-                                        .getText()
-                        );
+        box.addView(
+                input,
+                new LinearLayout.LayoutParams(
+                        -1,dp(60)
+                )
+        );
 
-                        updatePinDots(
-                                dots,
-                                pin.length()
-                        );
-                    }
-                };
-
-        int[][] nums = {
-                {1,2,3},
-                {4,5,6},
-                {7,8,9}
-        };
-
-        for (int[] row : nums) {
-
-            LinearLayout r =
-                    new LinearLayout(this);
-
-            r.setGravity(
-                    Gravity.CENTER
-            );
-
-            for (int n : row) {
-
-                Button b =
-                        pinButton(
-                                String.valueOf(n)
-                        );
-
-                b.setOnClickListener(
-                        digit
-                );
-
-                r.addView(
-                        b,
-                        new LinearLayout.LayoutParams(
-                                dp(78),
-                                dp(62)
-                        )
-                );
-            }
-
-            root.addView(r);
-        }
-
-        LinearLayout last =
+        LinearLayout keypad =
                 new LinearLayout(this);
 
-        last.setGravity(
-                Gravity.CENTER
+        keypad.setOrientation(
+                LinearLayout.VERTICAL
         );
 
-        Button clear =
-                pinButton("C");
+        String[][] keys = {
+                {"1","2","3"},
+                {"4","5","6"},
+                {"7","8","9"},
+                {"⌫","0","✓"}
+        };
 
-        clear.setOnClickListener(
-                v -> {
+        for (String[] row : keys) {
 
-                    pin.setLength(0);
+            LinearLayout line =
+                    new LinearLayout(this);
 
-                    updatePinDots(
-                            dots,
-                            0
-                    );
-                }
-        );
+            for (String key : row) {
 
-        Button zero =
-                pinButton("0");
+                Button b =
+                        new Button(this);
 
-        zero.setOnClickListener(
-                digit
-        );
+                b.setText(key);
+                b.setTextSize(19);
+                b.setAllCaps(false);
 
-        Button back =
-                pinButton("⌫");
-
-        back.setOnClickListener(
-                v -> {
-
-                    if (pin.length() > 0)
-                        pin.deleteCharAt(
-                                pin.length() - 1
-                        );
-
-                    updatePinDots(
-                            dots,
-                            pin.length()
-                    );
-                }
-        );
-
-        last.addView(
-                clear,
-                new LinearLayout.LayoutParams(
-                        dp(78),
-                        dp(62)
-                )
-        );
-
-        last.addView(
-                zero,
-                new LinearLayout.LayoutParams(
-                        dp(78),
-                        dp(62)
-                )
-        );
-
-        last.addView(
-                back,
-                new LinearLayout.LayoutParams(
-                        dp(78),
-                        dp(62)
-                )
-        );
-
-        root.addView(last);
-
-        Button action =
-                pinButton(
-                        gate
-                                ? "Unlock"
-                                : "Save"
+                line.addView(
+                        b,
+                        new LinearLayout.LayoutParams(
+                                0,dp(58),1
+                        )
                 );
 
-        action.setOnClickListener(
-                v -> {
+                b.setOnClickListener(v -> {
 
-                    if (pin.length() < 4) {
+                    String k =
+                            ((Button)v)
+                                    .getText()
+                                    .toString();
 
-                        Toast.makeText(
-                                this,
-                                "Enter at least 4 digits",
-                                Toast.LENGTH_SHORT
-                        ).show();
+                    if ("⌫".equals(k)) {
 
-                        return;
-                    }
+                        String s =
+                                input.getText()
+                                        .toString();
 
-                    String entered =
-                            pin.toString();
+                        if (!s.isEmpty()) {
 
-                    if (gate) {
-
-                        if (
-                                entered.equals(
-                                        prefs.getString(
-                                                "pin",
-                                                ""
-                                        )
-                                )
-                        ) {
-
-                            dialog.dismiss();
-
-                        } else {
-
-                            updatePinDots(
-                                    dots,
-                                    0
+                            input.setText(
+                                    s.substring(
+                                            0,
+                                            s.length()-1
+                                    )
                             );
-
-                            pin.setLength(0);
-
-                            Toast.makeText(
-                                    this,
-                                    "Wrong PIN",
-                                    Toast.LENGTH_SHORT
-                            ).show();
                         }
+
+                    } else if ("✓".equals(k)) {
+
+                        checkPin(
+                                input,
+                                dialog
+                        );
 
                     } else {
 
-                        callback.done(
-                                entered
-                        );
-
-                        dialog.dismiss();
+                        if (input.length() < 4)
+                            input.append(k);
                     }
-                }
-        );
+                });
 
-        LinearLayout.LayoutParams ap =
+                addPressAnimation(b);
+            }
+
+            keypad.addView(line);
+        }
+
+        box.addView(
+                keypad,
                 new LinearLayout.LayoutParams(
-                        dp(250),
-                        dp(58)
-                );
-
-        ap.setMargins(
-                0,
-                dp(18),
-                0,
-                0
+                        -1,dp(235)
+                )
         );
 
-        root.addView(
-                action,
-                ap
-        );
-
-        dialog.setContentView(root);
-
-        dialog.setCancelable(!gate);
-
-        dialog.setCanceledOnTouchOutside(false);
-
-        dialog.setOnShowListener(
-                x -> {
-
-                    Window w =
-                            dialog.getWindow();
-
-                    if (w != null) {
-
-                        w.setBackgroundDrawable(
-                                new android.graphics.drawable.ColorDrawable(
-                                        bg()
-                                )
-                        );
-
-                        w.setDimAmount(1f);
-
-                        w.addFlags(
-                                WindowManager.LayoutParams.FLAG_DIM_BEHIND
-                        );
-
-                        w.setSoftInputMode(
-                                WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
-                        );
-
-                        w.setLayout(
-                                -1,
-                                -1
-                        );
-                    }
-                }
-        );
-
-        dialog.show();
+        dialog.setContentView(box);
 
         Window w =
                 dialog.getWindow();
@@ -3872,139 +2997,58 @@ public class MainActivity extends Activity {
         if (w != null) {
 
             w.setBackgroundDrawable(
-                    new android.graphics.drawable.ColorDrawable(
-                            bg()
+                    new ColorDrawable(
+                            Color.TRANSPARENT
                     )
             );
 
-            WindowManager.LayoutParams lp =
-                    w.getAttributes();
-
-            lp.width =
-                    WindowManager.LayoutParams.MATCH_PARENT;
-
-            lp.height =
-                    WindowManager.LayoutParams.MATCH_PARENT;
-
-            lp.dimAmount = 1f;
-
-            w.setAttributes(lp);
-
-            w.setSoftInputMode(
-                    WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
+            w.setLayout(
+                    dp(330),
+                    WindowManager.LayoutParams.WRAP_CONTENT
             );
         }
+
+        dialog.show();
+
+        if (dialog.getWindow() != null) {
+
+            dialog.getWindow()
+                    .setLayout(
+                            dp(330),
+                            WindowManager.LayoutParams.WRAP_CONTENT
+                    );
+        }
     }
 
-    Button pinButton(
-            String s
+    void checkPin(
+            EditText input,
+            Dialog dialog
     ) {
 
-        Button b =
-                new Button(this);
+        String saved =
+                prefs.getString("pin","");
 
-        b.setText(s);
+        if (saved.equals(
+                input.getText().toString()
+        )) {
 
-        b.setTextSize(21);
+            dialog.dismiss();
 
-        b.setTextColor(
-                primaryText()
-        );
+        } else {
 
-        b.setBackgroundColor(
-                isLight()
-                        ? Color.WHITE
-                        : Color.rgb(
-                                48,
-                                50,
-                                54
-                        )
-        );
+            input.setText("");
 
-        return b;
+            Toast.makeText(
+                    this,
+                    "Wrong PIN",
+                    Toast.LENGTH_SHORT
+            ).show();
+        }
     }
 
-    void updatePinDots(
-            TextView t,
-            int n
-    ) {
-
-        StringBuilder s =
-                new StringBuilder();
-
-        for (int i = 0; i < n; i++)
-            s.append("● ");
-
-        t.setText(
-                s.toString().trim()
-        );
-    }
-
-    void saveOrderFromViews() {
-
-        ArrayList<Achievement> visible =
-                new ArrayList<>();
-
-        for (
-                int i = 0;
-                i < list.getChildCount();
-                i++
-        ) {
-
-            Object tag =
-                    list.getChildAt(i)
-                            .getTag();
-
-            if (
-                    tag instanceof Achievement
-            )
-                visible.add(
-                        (Achievement) tag
-                );
-        }
-
-        if (visible.isEmpty())
-            return;
-
-        ArrayList<Integer> slots =
-                new ArrayList<>();
-
-        for (
-                int i = 0;
-                i < data.size();
-                i++
-        ) {
-
-            if (
-                    matchesFilter(
-                            data.get(i)
-                    )
-            ) {
-
-                slots.add(i);
-            }
-        }
-
-        if (
-                slots.size()
-                        == visible.size()
-        ) {
-
-            for (
-                    int i = 0;
-                    i < slots.size();
-                    i++
-            ) {
-
-                data.set(
-                        slots.get(i),
-                        visible.get(i)
-                );
-            }
-        }
-
-        save();
-    }
+    // ---------------------------------------------------------
+    // PERSISTENCE
+    // ---------------------------------------------------------
 
     void save() {
 
@@ -4018,91 +3062,88 @@ public class MainActivity extends Activity {
                 JSONObject o =
                         new JSONObject();
 
+                o.put("title",a.title);
+                o.put("desc",a.desc);
+                o.put("medal",a.medal);
+                o.put("done",a.done);
+                o.put("imagePath",
+                        a.imagePath == null
+                                ? ""
+                                : a.imagePath
+                );
+
+                o.put("imageShape",
+                        a.imageShape == null
+                                ? "circle"
+                                : a.imageShape
+                );
+
+                o.put("pinned",a.pinned);
+
+                // NEW
                 o.put(
-                        "title",
-                        a.title
+                        "customColor",
+                        a.customColor
                 );
 
                 o.put(
-                        "desc",
-                        a.desc
-                );
-
-                o.put(
-                        "medal",
-                        a.medal
-                );
-
-                o.put(
-                        "done",
-                        a.done
-                );
-
-                o.put(
-                        "imagePath",
-                        a.imagePath
-                );
-
-                o.put(
-                        "imageShape",
-                        a.imageShape
-                );
-
-                o.put(
-                        "pinned",
-                        a.pinned
+                        "backgroundMode",
+                        a.backgroundMode == null
+                                ? "default"
+                                : a.backgroundMode
                 );
 
                 arr.put(o);
             }
 
-        } catch (Exception ignored) {
-        }
+            prefs.edit()
+                    .putString(
+                            "data",
+                            arr.toString()
+                    )
+                    .apply();
 
-        prefs.edit()
-                .putString(
-                        "items",
-                        arr.toString()
-                )
-                .apply();
+        } catch (Exception ignored) {}
     }
 
     void load() {
 
+        data.clear();
+
         String raw =
                 prefs.getString(
-                        "items",
+                        "data",
                         ""
                 );
 
-        if (raw.length() == 0)
+        if (raw.isEmpty())
             return;
 
         try {
 
-            JSONArray a =
+            JSONArray arr =
                     new JSONArray(raw);
 
-            for (
-                    int i = 0;
-                    i < a.length();
-                    i++
-            ) {
+            for (int i=0;
+                 i<arr.length();
+                 i++) {
 
                 JSONObject o =
-                        a.getJSONObject(i);
+                        arr.getJSONObject(i);
 
-                data.add(
+                Achievement a =
                         new Achievement(
                                 o.optString(
-                                        "title"
+                                        "title",
+                                        ""
                                 ),
                                 o.optString(
-                                        "desc"
+                                        "desc",
+                                        ""
                                 ),
                                 o.optString(
                                         "medal",
-                                        "Platinum"
+                                        "Bronze"
                                 ),
                                 o.optBoolean(
                                         "done",
@@ -4120,22 +3161,52 @@ public class MainActivity extends Activity {
                                         "pinned",
                                         false
                                 )
-                        )
-                );
+                        );
+
+                // Backward compatible
+                a.customColor =
+                        o.optInt(
+                                "customColor",
+                                0
+                        );
+
+                a.backgroundMode =
+                        o.optString(
+                                "backgroundMode",
+                                "default"
+                        );
+
+                data.add(a);
             }
 
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
     }
 
-    int dp(int x) {
+    // ---------------------------------------------------------
+    // HELPERS
+    // ---------------------------------------------------------
 
-        return (int) (
-                x
-                        * getResources()
-                                .getDisplayMetrics()
-                                .density
-                        + .5f
+    String medalEmoji(String medal) {
+
+        if ("Platinum".equals(medal))
+            return "🏆";
+
+        if ("Gold".equals(medal))
+            return "🥇";
+
+        if ("Silver".equals(medal))
+            return "🥈";
+
+        return "🥉";
+    }
+
+    int dp(int value) {
+
+        return (int)(
+                value *
+                getResources()
+                        .getDisplayMetrics()
+                        .density
         );
     }
 }
