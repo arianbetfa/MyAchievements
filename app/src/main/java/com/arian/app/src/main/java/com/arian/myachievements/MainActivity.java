@@ -1548,16 +1548,13 @@ public class MainActivity extends Activity {
 
         desc.setEllipsize(null);
 
-        desc.setIncludeFontPadding(false);
-
-        desc.setLineSpacing(-2f, 1.0f);
+        desc.setIncludeFontPadding(true);
 
         text.addView(
                 title,
                 new LinearLayout.LayoutParams(
                         -1,
-                        0,
-                        1.25f
+                        android.view.ViewGroup.LayoutParams.WRAP_CONTENT
                 )
         );
 
@@ -1565,8 +1562,7 @@ public class MainActivity extends Activity {
                 desc,
                 new LinearLayout.LayoutParams(
                         -1,
-                        0,
-                        1.0f
+                        android.view.ViewGroup.LayoutParams.WRAP_CONTENT
                 )
         );
 
