@@ -1550,6 +1550,8 @@ public class MainActivity extends Activity {
 
         desc.setIncludeFontPadding(false);
 
+        desc.setLineSpacing(-2f, 1.0f);
+
         text.addView(
                 title,
                 new LinearLayout.LayoutParams(
