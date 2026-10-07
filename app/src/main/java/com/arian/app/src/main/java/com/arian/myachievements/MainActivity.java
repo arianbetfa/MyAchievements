@@ -7,6 +7,7 @@ import android.graphics.*;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.view.*;
+import android.view.animation.*;
 import android.widget.*;
 import android.text.InputType;
 
@@ -50,24 +51,88 @@ public class MainActivity extends Activity {
         String desc;
         String medal;
         String imagePath;
+        String imageShape;
 
         boolean done;
         boolean pinned;
 
-        Achievement(String t, String d, String m, boolean c) {
-            this(t, d, m, c, "");
+        Achievement(
+                String t,
+                String d,
+                String m,
+                boolean c
+        ) {
+            this(
+                    t,
+                    d,
+                    m,
+                    c,
+                    "",
+                    "circle",
+                    false
+            );
         }
 
-        Achievement(String t, String d, String m, boolean c, String img) {
-            this(t, d, m, c, img, false);
+        Achievement(
+                String t,
+                String d,
+                String m,
+                boolean c,
+                String img
+        ) {
+            this(
+                    t,
+                    d,
+                    m,
+                    c,
+                    img,
+                    "circle",
+                    false
+            );
         }
 
-        Achievement(String t, String d, String m, boolean c, String img, boolean pin) {
+        Achievement(
+                String t,
+                String d,
+                String m,
+                boolean c,
+                String img,
+                boolean pin
+        ) {
+            this(
+                    t,
+                    d,
+                    m,
+                    c,
+                    img,
+                    "circle",
+                    pin
+            );
+        }
+
+        Achievement(
+                String t,
+                String d,
+                String m,
+                boolean c,
+                String img,
+                String shape,
+                boolean pin
+        ) {
             title = t;
             desc = d;
             medal = m;
             done = c;
-            imagePath = img == null ? "" : img;
+            imagePath =
+                    img == null
+                            ? ""
+                            : img;
+
+            imageShape =
+                    shape == null
+                            ? "circle"
+                            : shape;
+
             pinned = pin;
         }
     }
@@ -75,10 +140,17 @@ public class MainActivity extends Activity {
     @Override
     public void onCreate(Bundle b) {
 
-        prefs = getSharedPreferences("achievements", MODE_PRIVATE);
+        prefs =
+                getSharedPreferences(
+                        "achievements",
+                        MODE_PRIVATE
+                );
 
         setTheme(
-                prefs.getBoolean("lightMode", false)
+                prefs.getBoolean(
+                        "lightMode",
+                        false
+                )
                         ? R.style.AppTheme_Light
                         : R.style.AppTheme
         );
@@ -86,13 +158,23 @@ public class MainActivity extends Activity {
         super.onCreate(b);
 
         getWindow().setStatusBarColor(
-                isLight() ? BG_LIGHT : BG_DARK
+                isLight()
+                        ? BG_LIGHT
+                        : BG_DARK
         );
 
         getWindow().setNavigationBarColor(
                 isLight()
-                        ? Color.rgb(230,232,235)
-                        : Color.rgb(23,24,26)
+                        ? Color.rgb(
+                                230,
+                                232,
+                                235
+                        )
+                        : Color.rgb(
+                                23,
+                                24,
+                                26
+                        )
         );
 
         load();
@@ -105,65 +187,114 @@ public class MainActivity extends Activity {
     }
 
     boolean isLight() {
-        return prefs.getBoolean("lightMode", false);
+
+        return prefs.getBoolean(
+                "lightMode",
+                false
+        );
     }
 
     int bg() {
-        return isLight() ? BG_LIGHT : BG_DARK;
+
+        return isLight()
+                ? BG_LIGHT
+                : BG_DARK;
     }
 
     int cardColor(Achievement a) {
+
         return a.done
-                ? (isLight() ? DONE_LIGHT : DONE_DARK)
-                : (isLight() ? CARD_LIGHT : CARD_DARK);
+                ? (
+                    isLight()
+                            ? DONE_LIGHT
+                            : DONE_DARK
+                )
+                : (
+                    isLight()
+                            ? CARD_LIGHT
+                            : CARD_DARK
+                );
     }
 
     int panelColor() {
-        return isLight() ? PANEL_LIGHT : PANEL_DARK;
+
+        return isLight()
+                ? PANEL_LIGHT
+                : PANEL_DARK;
     }
 
     int visualColor(Achievement a) {
+
         return a.done
-                ? (isLight() ? DONE_PANEL_LIGHT : DONE_PANEL_DARK)
+                ? (
+                    isLight()
+                            ? DONE_PANEL_LIGHT
+                            : DONE_PANEL_DARK
+                )
                 : panelColor();
     }
 
     int primaryText() {
+
         return isLight()
-                ? Color.rgb(30,31,34)
+                ? Color.rgb(
+                        30,
+                        31,
+                        34
+                )
                 : Color.WHITE;
     }
 
     int secondaryText() {
+
         return isLight()
-                ? Color.rgb(85,87,92)
+                ? Color.rgb(
+                        85,
+                        87,
+                        92
+                )
                 : Color.LTGRAY;
     }
 
     void buildUi() {
 
-        FrameLayout frame = new FrameLayout(this);
+        FrameLayout frame =
+                new FrameLayout(this);
+
         frame.setBackgroundColor(bg());
 
-        frame.setOnApplyWindowInsetsListener((v, insets) -> {
+        frame.setOnApplyWindowInsetsListener(
+                (v, insets) -> {
 
-            v.setPadding(
-                    0,
-                    insets.getSystemWindowInsetTop(),
-                    0,
-                    insets.getSystemWindowInsetBottom()
-            );
+                    v.setPadding(
+                            0,
+                            insets.getSystemWindowInsetTop(),
+                            0,
+                            insets.getSystemWindowInsetBottom()
+                    );
 
-            return insets;
-        });
+                    return insets;
+                }
+        );
 
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout root =
+                new LinearLayout(this);
+
+        root.setOrientation(
+                LinearLayout.VERTICAL
+        );
+
         root.setBackgroundColor(bg());
 
-        LinearLayout top = new LinearLayout(this);
+        /*
+         * TOP BAR
+         */
+        LinearLayout top =
+                new LinearLayout(this);
 
-        top.setGravity(Gravity.CENTER_VERTICAL);
+        top.setGravity(
+                Gravity.CENTER_VERTICAL
+        );
 
         top.setPadding(
                 dp(10),
@@ -172,13 +303,16 @@ public class MainActivity extends Activity {
                 dp(3)
         );
 
-        TextView menu = tv(
-                "☰",
-                30,
-                primaryText()
-        );
+        TextView menu =
+                tv(
+                        "☰",
+                        30,
+                        primaryText()
+                );
 
-        menu.setGravity(Gravity.CENTER);
+        menu.setGravity(
+                Gravity.CENTER
+        );
 
         addPressAnimation(menu);
 
@@ -194,11 +328,12 @@ public class MainActivity extends Activity {
                 )
         );
 
-        screenTitle = tv(
-                "All Achievements",
-                27,
-                primaryText()
-        );
+        screenTitle =
+                tv(
+                        "All Achievements",
+                        27,
+                        primaryText()
+                );
 
         screenTitle.setGravity(
                 Gravity.CENTER_VERTICAL
@@ -213,13 +348,16 @@ public class MainActivity extends Activity {
                 )
         );
 
-        TextView more = tv(
-                "⋮",
-                32,
-                primaryText()
-        );
+        TextView more =
+                tv(
+                        "⋮",
+                        32,
+                        primaryText()
+                );
 
-        more.setGravity(Gravity.CENTER);
+        more.setGravity(
+                Gravity.CENTER
+        );
 
         addPressAnimation(more);
 
@@ -237,32 +375,43 @@ public class MainActivity extends Activity {
 
         root.addView(top);
 
-        counts = tv(
-                "",
-                17,
-                primaryText()
-        );
+        /*
+         * COUNTS
+         */
+        counts =
+                tv(
+                        "",
+                        17,
+                        primaryText()
+                );
 
-        counts.setGravity(Gravity.CENTER);
+        counts.setGravity(
+                Gravity.CENTER
+        );
 
         counts.setPadding(
                 0,
                 0,
                 0,
-                dp(6)
+                dp(3)
         );
 
         root.addView(counts);
 
         buildCategoryBar(root);
 
-        ScrollView scroll = new ScrollView(this);
+        /*
+         * LIST
+         */
+        ScrollView scroll =
+                new ScrollView(this);
 
         scroll.setFillViewport(true);
 
         scroll.setBackgroundColor(bg());
 
-        list = new LinearLayout(this);
+        list =
+                new LinearLayout(this);
 
         list.setOrientation(
                 LinearLayout.VERTICAL
@@ -270,9 +419,9 @@ public class MainActivity extends Activity {
 
         list.setPadding(
                 dp(8),
-                dp(2),
+                dp(1),
                 dp(8),
-                dp(95)
+                dp(72)
         );
 
         list.setOnDragListener(
@@ -298,18 +447,27 @@ public class MainActivity extends Activity {
                 )
         );
 
-        TextView add = tv(
-                "+",
-                34,
-                Color.WHITE
+        /*
+         * ADD BUTTON
+         */
+        TextView add =
+                tv(
+                        "+",
+                        34,
+                        Color.WHITE
+                );
+
+        add.setGravity(
+                Gravity.CENTER
         );
 
-        add.setGravity(Gravity.CENTER);
-
-        GradientDrawable fab = new GradientDrawable();
+        GradientDrawable fab =
+                new GradientDrawable();
 
         fab.setColor(CYAN);
-        fab.setShape(GradientDrawable.OVAL);
+        fab.setShape(
+                GradientDrawable.OVAL
+        );
 
         add.setBackground(fab);
 
@@ -325,7 +483,8 @@ public class MainActivity extends Activity {
                 new FrameLayout.LayoutParams(
                         dp(62),
                         dp(62),
-                        Gravity.RIGHT | Gravity.BOTTOM
+                        Gravity.RIGHT
+                                | Gravity.BOTTOM
                 );
 
         fp.setMargins(
@@ -342,14 +501,17 @@ public class MainActivity extends Activity {
         render();
     }
 
-    void buildCategoryBar(LinearLayout root) {
+    void buildCategoryBar(
+            LinearLayout root
+    ) {
 
         HorizontalScrollView hsv =
                 new HorizontalScrollView(this);
 
         hsv.setHorizontalScrollBarEnabled(false);
 
-        categoryBar = new LinearLayout(this);
+        categoryBar =
+                new LinearLayout(this);
 
         categoryBar.setGravity(
                 Gravity.CENTER_VERTICAL
@@ -372,13 +534,16 @@ public class MainActivity extends Activity {
 
         for (String c : cats) {
 
-            TextView b = tv(
-                    c,
-                    14,
-                    categoryTextColor(c)
-            );
+            TextView b =
+                    tv(
+                            c,
+                            14,
+                            categoryTextColor(c)
+                    );
 
-            b.setGravity(Gravity.CENTER);
+            b.setGravity(
+                    Gravity.CENTER
+            );
 
             b.setTypeface(
                     android.graphics.Typeface.create(
@@ -398,15 +563,17 @@ public class MainActivity extends Activity {
 
             addPressAnimation(b);
 
-            b.setOnClickListener(v -> {
+            b.setOnClickListener(
+                    v -> {
 
-                currentFilter =
-                        (String) v.getTag();
+                        currentFilter =
+                                (String) v.getTag();
 
-                updateCategoryButtons();
+                        updateCategoryButtons();
 
-                render();
-            });
+                        render();
+                    }
+            );
 
             LinearLayout.LayoutParams bp =
                     new LinearLayout.LayoutParams(
@@ -415,13 +582,16 @@ public class MainActivity extends Activity {
                     );
 
             bp.setMargins(
-                    dp(7),
+                    dp(5),
                     0,
-                    dp(7),
+                    dp(5),
                     0
             );
 
-            categoryBar.addView(b, bp);
+            categoryBar.addView(
+                    b,
+                    bp
+            );
         }
 
         hsv.addView(
@@ -448,12 +618,15 @@ public class MainActivity extends Activity {
         if (categoryBar == null)
             return;
 
-        for (int i = 0;
-             i < categoryBar.getChildCount();
-             i++) {
+        for (
+                int i = 0;
+                i < categoryBar.getChildCount();
+                i++
+        ) {
 
             TextView b =
-                    (TextView) categoryBar.getChildAt(i);
+                    (TextView)
+                            categoryBar.getChildAt(i);
 
             String c =
                     (String) b.getTag();
@@ -470,14 +643,22 @@ public class MainActivity extends Activity {
                     sel
                             ? (
                                 isLight()
-                                    ? Color.rgb(235,238,242)
-                                    : Color.rgb(53,56,61)
-                              )
+                                        ? Color.rgb(
+                                                235,
+                                                238,
+                                                242
+                                        )
+                                        : Color.rgb(
+                                                53,
+                                                56,
+                                                61
+                                        )
+                            )
                             : (
                                 isLight()
-                                    ? Color.WHITE
-                                    : CARD_DARK
-                              )
+                                        ? Color.WHITE
+                                        : CARD_DARK
+                            )
             );
 
             b.setBackground(d);
@@ -501,17 +682,33 @@ public class MainActivity extends Activity {
 
         if ("Platinum".equals(c))
             return isLight()
-                    ? Color.rgb(45,47,52)
+                    ? Color.rgb(
+                            45,
+                            47,
+                            52
+                    )
                     : Color.WHITE;
 
         if ("Gold".equals(c))
-            return Color.rgb(255,193,7);
+            return Color.rgb(
+                    255,
+                    193,
+                    7
+            );
 
         if ("Silver".equals(c))
-            return Color.rgb(90,165,235);
+            return Color.rgb(
+                    90,
+                    165,
+                    235
+            );
 
         if ("Bronze".equals(c))
-            return Color.rgb(181,112,55);
+            return Color.rgb(
+                    181,
+                    112,
+                    55
+            );
 
         return primaryText();
     }
@@ -550,8 +747,10 @@ public class MainActivity extends Activity {
         v.setOnTouchListener(
                 (view, event) -> {
 
-                    if (event.getAction()
-                            == MotionEvent.ACTION_DOWN) {
+                    if (
+                            event.getAction()
+                                    == MotionEvent.ACTION_DOWN
+                    ) {
 
                         view.animate()
                                 .scaleX(.94f)
@@ -581,8 +780,10 @@ public class MainActivity extends Activity {
 
     boolean handleDrag(DragEvent e) {
 
-        if (e.getAction()
-                == DragEvent.ACTION_DRAG_STARTED)
+        if (
+                e.getAction()
+                        == DragEvent.ACTION_DRAG_STARTED
+        )
             return true;
 
         if (
@@ -749,10 +950,10 @@ public class MainActivity extends Activity {
         );
 
         card.setPadding(
-                dp(4),
-                dp(4),
-                dp(4),
-                dp(4)
+                dp(3),
+                dp(2),
+                dp(3),
+                dp(2)
         );
 
         GradientDrawable bgd =
@@ -773,7 +974,7 @@ public class MainActivity extends Activity {
         );
 
         /*
-         * Visual area
+         * VISUAL
          */
         FrameLayout visual =
                 new FrameLayout(this);
@@ -794,7 +995,7 @@ public class MainActivity extends Activity {
         );
 
         /*
-         * Achievement image
+         * IMAGE
          */
         if (
                 a.imagePath != null
@@ -826,9 +1027,26 @@ public class MainActivity extends Activity {
                             Color.TRANSPARENT
                     );
 
-                    imageBg.setCornerRadius(
-                            dp(10)
-                    );
+                    if (
+                            "square".equals(
+                                    a.imageShape
+                            )
+                    ) {
+
+                        imageBg.setShape(
+                                GradientDrawable.RECTANGLE
+                        );
+
+                        imageBg.setCornerRadius(
+                                dp(2)
+                        );
+
+                    } else {
+
+                        imageBg.setShape(
+                                GradientDrawable.OVAL
+                        );
+                    }
 
                     imageBg.setStroke(
                             dp(1),
@@ -882,7 +1100,7 @@ public class MainActivity extends Activity {
         }
 
         /*
-         * Drag handle
+         * DRAG HANDLE
          */
         TextView grip =
                 tv(
@@ -891,9 +1109,9 @@ public class MainActivity extends Activity {
                         a.done
                                 ? (
                                     isLight()
-                                        ? GREEN
-                                        : Color.WHITE
-                                  )
+                                            ? GREEN
+                                            : Color.WHITE
+                                )
                                 : secondaryText()
                 );
 
@@ -906,20 +1124,21 @@ public class MainActivity extends Activity {
                 new FrameLayout.LayoutParams(
                         dp(26),
                         dp(26),
-                        Gravity.LEFT | Gravity.BOTTOM
+                        Gravity.LEFT
+                                | Gravity.BOTTOM
                 )
         );
 
         LinearLayout.LayoutParams vp =
                 new LinearLayout.LayoutParams(
-                        dp(68),
-                        dp(68)
+                        dp(62),
+                        dp(62)
                 );
 
         vp.setMargins(
                 dp(2),
                 0,
-                dp(4),
+                dp(3),
                 0
         );
 
@@ -929,7 +1148,7 @@ public class MainActivity extends Activity {
         );
 
         /*
-         * Text
+         * TEXT
          */
         LinearLayout text =
                 new LinearLayout(this);
@@ -943,10 +1162,10 @@ public class MainActivity extends Activity {
         );
 
         text.setPadding(
-                dp(7),
-                dp(1),
+                dp(6),
+                0,
                 dp(3),
-                dp(1)
+                0
         );
 
         int textMain =
@@ -956,7 +1175,11 @@ public class MainActivity extends Activity {
 
         int textSecond =
                 a.done && !isLight()
-                        ? Color.rgb(225,240,250)
+                        ? Color.rgb(
+                                225,
+                                240,
+                                250
+                        )
                         : secondaryText();
 
         TextView title =
@@ -1036,13 +1259,13 @@ public class MainActivity extends Activity {
                 text,
                 new LinearLayout.LayoutParams(
                         0,
-                        dp(82),
+                        dp(70),
                         1
                 )
         );
 
         /*
-         * Action buttons
+         * ACTIONS
          */
         LinearLayout actions =
                 new LinearLayout(this);
@@ -1056,20 +1279,20 @@ public class MainActivity extends Activity {
         );
 
         /*
-         * Complete
+         * COMPLETE
          */
         TextView done =
                 tv(
                         a.done
                                 ? "✓"
                                 : "○",
-                        21,
+                        20,
                         a.done
                                 ? (
                                     isLight()
-                                        ? GREEN
-                                        : CYAN
-                                  )
+                                            ? GREEN
+                                            : CYAN
+                                )
                                 : secondaryText()
                 );
 
@@ -1083,30 +1306,32 @@ public class MainActivity extends Activity {
 
         addPressAnimation(done);
 
-        done.setOnClickListener(v -> {
+        done.setOnClickListener(
+                v -> {
 
-            a.done = !a.done;
+                    a.done = !a.done;
 
-            save();
+                    save();
 
-            render();
-        });
+                    render();
+                }
+        );
 
         /*
-         * Pin
+         * PIN
          */
         TextView pin =
                 tv(
                         a.pinned
                                 ? "★"
                                 : "☆",
-                        22,
+                        21,
                         a.pinned
                                 ? (
                                     isLight()
-                                        ? GREEN
-                                        : CYAN
-                                  )
+                                            ? GREEN
+                                            : CYAN
+                                )
                                 : secondaryText()
                 );
 
@@ -1120,22 +1345,24 @@ public class MainActivity extends Activity {
 
         addPressAnimation(pin);
 
-        pin.setOnClickListener(v -> {
+        pin.setOnClickListener(
+                v -> {
 
-            a.pinned = !a.pinned;
+                    a.pinned = !a.pinned;
 
-            save();
+                    save();
 
-            render();
-        });
+                    render();
+                }
+        );
 
         /*
-         * Delete
+         * DELETE
          */
         TextView delete =
                 tv(
                         "🗑",
-                        17,
+                        16,
                         secondaryText()
                 );
 
@@ -1149,24 +1376,26 @@ public class MainActivity extends Activity {
 
         addPressAnimation(delete);
 
-        delete.setOnClickListener(v -> {
+        delete.setOnClickListener(
+                v -> {
 
-            int realIndex =
-                    data.indexOf(a);
+                    int realIndex =
+                            data.indexOf(a);
 
-            if (realIndex >= 0) {
+                    if (realIndex >= 0) {
 
-                confirmDelete(
-                        realIndex
-                );
-            }
-        });
+                        confirmDelete(
+                                realIndex
+                        );
+                    }
+                }
+        );
 
         actions.addView(
                 done,
                 new LinearLayout.LayoutParams(
                         dp(32),
-                        dp(30)
+                        dp(27)
                 )
         );
 
@@ -1174,7 +1403,7 @@ public class MainActivity extends Activity {
                 pin,
                 new LinearLayout.LayoutParams(
                         dp(32),
-                        dp(30)
+                        dp(27)
                 )
         );
 
@@ -1182,7 +1411,7 @@ public class MainActivity extends Activity {
                 delete,
                 new LinearLayout.LayoutParams(
                         dp(32),
-                        dp(30)
+                        dp(27)
                 )
         );
 
@@ -1190,83 +1419,92 @@ public class MainActivity extends Activity {
                 actions,
                 new LinearLayout.LayoutParams(
                         dp(34),
-                        dp(105)
+                        dp(84)
                 )
         );
 
         /*
-         * Card click = Edit
+         * EDIT
          */
         card.setTag(a);
 
         addPressAnimation(card);
 
         card.setOnClickListener(
-                v -> showEditor(index)
+                v -> {
+
+                    int realIndex =
+                            data.indexOf(a);
+
+                    if (realIndex >= 0)
+                        showEditor(realIndex);
+                }
         );
 
         /*
-         * Long press = Drag
+         * DRAG
          */
-        card.setOnLongClickListener(v -> {
+        card.setOnLongClickListener(
+                v -> {
 
-            dragged = card;
+                    dragged = card;
 
-            card.setAlpha(.72f);
+                    card.setAlpha(.72f);
 
-            card.setScaleX(1.025f);
-            card.setScaleY(1.025f);
+                    card.setScaleX(1.025f);
+                    card.setScaleY(1.025f);
 
-            card.setElevation(
-                    dp(10)
-            );
+                    card.setElevation(
+                            dp(10)
+                    );
 
-            Toast.makeText(
-                    this,
-                    "Hold and drag to reorder",
-                    Toast.LENGTH_SHORT
-            ).show();
+                    Toast.makeText(
+                            this,
+                            "Hold and drag to reorder",
+                            Toast.LENGTH_SHORT
+                    ).show();
 
-            if (
-                    android.os.Build.VERSION.SDK_INT
-                            >= 24
-            ) {
+                    if (
+                            android.os.Build.VERSION.SDK_INT
+                                    >= 24
+                    ) {
 
-                card.startDragAndDrop(
-                        null,
-                        new View.DragShadowBuilder(
-                                card
-                        ),
-                        null,
-                        View.DRAG_FLAG_GLOBAL
-                );
+                        card.startDragAndDrop(
+                                null,
+                                new View.DragShadowBuilder(
+                                        card
+                                ),
+                                null,
+                                View.DRAG_FLAG_GLOBAL
+                        );
 
-            } else {
+                    } else {
 
-                card.startDrag(
-                        null,
-                        new View.DragShadowBuilder(
-                                card
-                        ),
-                        null,
-                        0
-                );
-            }
+                        card.startDrag(
+                                null,
+                                new View.DragShadowBuilder(
+                                        card
+                                ),
+                                null,
+                                0
+                        );
+                    }
 
-            return true;
-        });
+                    return true;
+                }
+        );
 
         LinearLayout.LayoutParams lp =
                 new LinearLayout.LayoutParams(
                         -1,
-                        dp(113)
+                        dp(90)
                 );
 
         lp.setMargins(
                 0,
-                dp(4),
+                dp(2),
                 0,
-                dp(4)
+                dp(2)
         );
 
         card.setLayoutParams(lp);
@@ -1284,12 +1522,15 @@ public class MainActivity extends Activity {
         )
             return;
 
+        final Achievement target =
+                data.get(index);
+
         new AlertDialog.Builder(this)
                 .setTitle(
                         "Delete achievement?"
                 )
                 .setMessage(
-                        data.get(index).title
+                        target.title
                 )
                 .setNegativeButton(
                         "Cancel",
@@ -1297,16 +1538,87 @@ public class MainActivity extends Activity {
                 )
                 .setPositiveButton(
                         "Delete",
-                        (d,w) -> {
+                        (d,w) ->
+                                animateDelete(
+                                        target
+                                )
+                )
+                .show();
+    }
 
-                            data.remove(index);
+    void animateDelete(
+            final Achievement target
+    ) {
+
+        if (list == null) {
+
+            data.remove(target);
+
+            save();
+
+            render();
+
+            return;
+        }
+
+        View targetView = null;
+
+        for (
+                int i = 0;
+                i < list.getChildCount();
+                i++
+        ) {
+
+            View child =
+                    list.getChildAt(i);
+
+            if (
+                    child.getTag()
+                            == target
+            ) {
+
+                targetView = child;
+
+                break;
+            }
+        }
+
+        if (targetView == null) {
+
+            data.remove(target);
+
+            save();
+
+            render();
+
+            return;
+        }
+
+        final View finalTarget =
+                targetView;
+
+        finalTarget.animate()
+                .alpha(0f)
+                .translationX(dp(90))
+                .scaleX(.82f)
+                .scaleY(.82f)
+                .setDuration(240)
+                .setInterpolator(
+                        new AccelerateInterpolator()
+                )
+                .withEndAction(
+                        () -> {
+
+                            data.remove(
+                                    target
+                            );
 
                             save();
 
                             render();
                         }
                 )
-                .show();
+                .start();
     }
 
     void addMedal(
@@ -1401,7 +1713,9 @@ public class MainActivity extends Activity {
     ) {
 
         return currentFilter.equals("All")
-                || a.medal.equals(currentFilter);
+                || a.medal.equals(
+                        currentFilter
+                );
     }
 
     int actualIndex(
@@ -1411,7 +1725,8 @@ public class MainActivity extends Activity {
         return data.indexOf(a);
     }
 
-    ArrayList<Achievement> visibleAchievements() {
+    ArrayList<Achievement>
+    visibleAchievements() {
 
         ArrayList<Achievement> out =
                 new ArrayList<>();
@@ -1463,13 +1778,25 @@ public class MainActivity extends Activity {
 
             if (a.done) {
 
-                if (a.medal.equals("Bronze"))
+                if (
+                        a.medal.equals(
+                                "Bronze"
+                        )
+                )
                     b++;
 
-                else if (a.medal.equals("Silver"))
+                else if (
+                        a.medal.equals(
+                                "Silver"
+                        )
+                )
                     s++;
 
-                else if (a.medal.equals("Gold"))
+                else if (
+                        a.medal.equals(
+                                "Gold"
+                        )
+                )
                     g++;
 
                 else
@@ -1601,6 +1928,9 @@ public class MainActivity extends Activity {
             }
         }
 
+        /*
+         * IMAGE PREVIEW
+         */
         ImageView preview =
                 new ImageView(this);
 
@@ -1623,16 +1953,109 @@ public class MainActivity extends Activity {
                         && !chosenImage[0].isEmpty()
         ) {
 
-            preview.setImageBitmap(
+            Bitmap previewBitmap =
                     BitmapFactory.decodeFile(
                             chosenImage[0]
-                    )
-            );
+                    );
+
+            if (previewBitmap != null)
+                preview.setImageBitmap(
+                        previewBitmap
+                );
+            else
+                preview.setImageResource(
+                        android.R.drawable.ic_menu_gallery
+                );
 
         } else {
 
             preview.setImageResource(
                     android.R.drawable.ic_menu_gallery
+            );
+        }
+
+        /*
+         * IMAGE SHAPE
+         */
+        TextView shapeTitle =
+                tv(
+                        "Image Shape",
+                        14,
+                        primaryText()
+                );
+
+        shapeTitle.setPadding(
+                0,
+                dp(8),
+                0,
+                dp(2)
+        );
+
+        RadioGroup shapeGroup =
+                new RadioGroup(this);
+
+        shapeGroup.setOrientation(
+                RadioGroup.HORIZONTAL
+        );
+
+        RadioButton circleOption =
+                new RadioButton(this);
+
+        circleOption.setText(
+                "Circle"
+        );
+
+        circleOption.setTextSize(14);
+
+        circleOption.setTextColor(
+                primaryText()
+        );
+
+        RadioButton squareOption =
+                new RadioButton(this);
+
+        squareOption.setText(
+                "Square"
+        );
+
+        squareOption.setTextSize(14);
+
+        squareOption.setTextColor(
+                primaryText()
+        );
+
+        shapeGroup.addView(
+                circleOption,
+                new RadioGroup.LayoutParams(
+                        0,
+                        dp(45),
+                        1
+                )
+        );
+
+        shapeGroup.addView(
+                squareOption,
+                new RadioGroup.LayoutParams(
+                        0,
+                        dp(45),
+                        1
+                )
+        );
+
+        if (
+                "square".equals(
+                        old.imageShape
+                )
+        ) {
+
+            squareOption.setChecked(
+                    true
+            );
+
+        } else {
+
+            circleOption.setChecked(
+                    true
             );
         }
 
@@ -1691,11 +2114,22 @@ public class MainActivity extends Activity {
                 }
         );
 
+        /*
+         * EDITOR ORDER
+         */
         box.addView(title);
 
         box.addView(desc);
 
         box.addView(spinner);
+
+        box.addView(
+                shapeTitle
+        );
+
+        box.addView(
+                shapeGroup
+        );
 
         box.addView(pinBox);
 
@@ -1735,50 +2169,60 @@ public class MainActivity extends Activity {
 
                     d.getButton(
                             AlertDialog.BUTTON_POSITIVE
-                    ).setOnClickListener(v -> {
+                    ).setOnClickListener(
+                            v -> {
 
-                        String t =
-                                title.getText()
-                                        .toString()
-                                        .trim();
+                                String t =
+                                        title.getText()
+                                                .toString()
+                                                .trim();
 
-                        if (t.length() == 0) {
+                                if (
+                                        t.length()
+                                                == 0
+                                ) {
 
-                            title.setError(
-                                    "Enter a title"
-                            );
+                                    title.setError(
+                                            "Enter a title"
+                                    );
 
-                            return;
-                        }
+                                    return;
+                                }
 
-                        old.title = t;
+                                old.title = t;
 
-                        old.desc =
-                                desc.getText()
-                                        .toString()
-                                        .trim();
+                                old.desc =
+                                        desc.getText()
+                                                .toString()
+                                                .trim();
 
-                        old.medal =
-                                medals[
-                                        spinner
-                                                .getSelectedItemPosition()
-                                ];
+                                old.medal =
+                                        medals[
+                                                spinner
+                                                        .getSelectedItemPosition()
+                                        ];
 
-                        old.imagePath =
-                                chosenImage[0];
+                                old.imagePath =
+                                        chosenImage[0];
 
-                        old.pinned =
-                                pinBox.isChecked();
+                                old.imageShape =
+                                        squareOption.isChecked()
+                                                ? "square"
+                                                : "circle";
 
-                        if (!edit)
-                            data.add(old);
+                                old.pinned =
+                                        pinBox.isChecked();
 
-                        save();
+                                if (!edit)
+                                    data.add(old);
 
-                        render();
+                                save();
 
-                        d.dismiss();
-                    });
+                                render();
+
+                                d.dismiss();
+                            }
+                    );
                 }
         );
 
@@ -1937,7 +2381,10 @@ public class MainActivity extends Activity {
                         crop.setCropFraction(
                                 .25f
                                         + .7f
-                                        * (p / 70f)
+                                        * (
+                                            p
+                                                    / 70f
+                                        )
                         );
                     }
 
@@ -1978,54 +2425,62 @@ public class MainActivity extends Activity {
                 x ->
                         d.getButton(
                                 AlertDialog.BUTTON_POSITIVE
-                        ).setOnClickListener(v -> {
+                        ).setOnClickListener(
+                                v -> {
 
-                            Bitmap out =
-                                    crop.getCroppedBitmap();
+                                    Bitmap out =
+                                            crop.getCroppedBitmap();
 
-                            try {
+                                    try {
 
-                                File f =
-                                        new File(
-                                                getFilesDir(),
-                                                "ach_"
-                                                        + System.currentTimeMillis()
-                                                        + ".jpg"
+                                        File f =
+                                                new File(
+                                                        getFilesDir(),
+                                                        "ach_"
+                                                                + System.currentTimeMillis()
+                                                                + ".jpg"
+                                                );
+
+                                        FileOutputStream os =
+                                                new FileOutputStream(
+                                                        f
+                                                );
+
+                                        out.compress(
+                                                Bitmap.CompressFormat.JPEG,
+                                                90,
+                                                os
                                         );
 
-                                FileOutputStream os =
-                                        new FileOutputStream(f);
+                                        os.close();
 
-                                out.compress(
-                                        Bitmap.CompressFormat.JPEG,
-                                        90,
-                                        os
-                                );
+                                        pendingImageHolder[0] =
+                                                f.getAbsolutePath();
 
-                                os.close();
+                                        pendingPreview
+                                                .setImageBitmap(
+                                                        out
+                                                );
 
-                                pendingImageHolder[0] =
-                                        f.getAbsolutePath();
+                                        pendingImageButton
+                                                .setText(
+                                                        "Change image"
+                                                );
 
-                                pendingPreview.setImageBitmap(
-                                        out
-                                );
+                                        d.dismiss();
 
-                                pendingImageButton.setText(
-                                        "Change image"
-                                );
+                                    } catch (
+                                            Exception e
+                                    ) {
 
-                                d.dismiss();
-
-                            } catch (Exception e) {
-
-                                Toast.makeText(
-                                        this,
-                                        "Could not save image",
-                                        Toast.LENGTH_SHORT
-                                ).show();
-                            }
-                        })
+                                        Toast.makeText(
+                                                this,
+                                                "Could not save image",
+                                                Toast.LENGTH_SHORT
+                                        ).show();
+                                    }
+                                }
+                        )
         );
 
         d.show();
@@ -2276,12 +2731,18 @@ public class MainActivity extends Activity {
                             + offsetY;
 
             float sx =
-                    (cx - size / 2 - left)
-                            / scale;
+                    (
+                            cx
+                                    - size / 2
+                                    - left
+                    ) / scale;
 
             float sy =
-                    (cy - size / 2 - top)
-                            / scale;
+                    (
+                            cy
+                                    - size / 2
+                                    - top
+                    ) / scale;
 
             float ss =
                     size / scale;
@@ -2457,8 +2918,10 @@ public class MainActivity extends Activity {
                 );
 
         h.setTypeface(
-                null,
-                android.graphics.Typeface.BOLD
+                android.graphics.Typeface.create(
+                        "sans-serif-medium",
+                        android.graphics.Typeface.NORMAL
+                )
         );
 
         box.addView(
@@ -2493,8 +2956,16 @@ public class MainActivity extends Activity {
 
         line.setBackgroundColor(
                 isLight()
-                        ? Color.rgb(215,217,222)
-                        : Color.rgb(75,78,83)
+                        ? Color.rgb(
+                                215,
+                                217,
+                                222
+                        )
+                        : Color.rgb(
+                                75,
+                                78,
+                                83
+                        )
         );
 
         LinearLayout.LayoutParams lineLp =
@@ -2515,6 +2986,9 @@ public class MainActivity extends Activity {
                 lineLp
         );
 
+        /*
+         * SETTINGS
+         */
         TextView settings =
                 rowButton(
                         "⚙",
@@ -2524,9 +2998,11 @@ public class MainActivity extends Activity {
         settings.setOnClickListener(
                 v -> {
 
-                    dialog.dismiss();
-
-                    showSettings();
+                    animateSideMenuClose(
+                            box,
+                            dialog,
+                            () -> showSettings()
+                    );
                 }
         );
 
@@ -2548,6 +3024,9 @@ public class MainActivity extends Activity {
                 sp
         );
 
+        /*
+         * ADD
+         */
         TextView add =
                 rowButton(
                         "＋",
@@ -2557,9 +3036,11 @@ public class MainActivity extends Activity {
         add.setOnClickListener(
                 v -> {
 
-                    dialog.dismiss();
-
-                    showEditor(-1);
+                    animateSideMenuClose(
+                            box,
+                            dialog,
+                            () -> showEditor(-1)
+                    );
                 }
         );
 
@@ -2581,6 +3062,9 @@ public class MainActivity extends Activity {
                 ap
         );
 
+        /*
+         * CLOSE
+         */
         TextView close =
                 rowButton(
                         "×",
@@ -2588,7 +3072,12 @@ public class MainActivity extends Activity {
                 );
 
         close.setOnClickListener(
-                v -> dialog.dismiss()
+                v ->
+                        animateSideMenuClose(
+                                box,
+                                dialog,
+                                null
+                        )
         );
 
         box.addView(
@@ -2640,22 +3129,106 @@ public class MainActivity extends Activity {
                                 WindowManager.LayoutParams.FLAG_DIM_BEHIND
                         );
 
+                        /*
+                         * PANEL ENTRY
+                         */
                         box.setTranslationX(
                                 -dp(320)
                         );
 
+                        box.setAlpha(.96f);
+
                         box.animate()
                                 .translationX(0)
-                                .setDuration(220)
+                                .setDuration(280)
                                 .setInterpolator(
-                                        new android.view.animation.DecelerateInterpolator()
+                                        new DecelerateInterpolator(
+                                                1.5f
+                                        )
                                 )
                                 .start();
+
+                        /*
+                         * ITEMS ENTRY
+                         */
+                        View[] items = {
+                                settings,
+                                add,
+                                close
+                        };
+
+                        for (
+                                int i = 0;
+                                i < items.length;
+                                i++
+                        ) {
+
+                            View item =
+                                    items[i];
+
+                            item.setAlpha(0f);
+
+                            item.setTranslationX(
+                                    -dp(28)
+                            );
+
+                            item.setScaleX(.96f);
+                            item.setScaleY(.96f);
+
+                            final int delay =
+                                    110
+                                            + i * 75;
+
+                            item.postDelayed(
+                                    () -> {
+
+                                        item.animate()
+                                                .alpha(1f)
+                                                .translationX(0)
+                                                .scaleX(1f)
+                                                .scaleY(1f)
+                                                .setDuration(230)
+                                                .setInterpolator(
+                                                        new DecelerateInterpolator(
+                                                                1.4f
+                                                        )
+                                                )
+                                                .start();
+
+                                    },
+                                    delay
+                            );
+                        }
                     }
                 }
         );
 
         dialog.show();
+    }
+
+    void animateSideMenuClose(
+            final View box,
+            final Dialog dialog,
+            final Runnable next
+    ) {
+
+        box.animate()
+                .translationX(-dp(320))
+                .alpha(.7f)
+                .setDuration(180)
+                .setInterpolator(
+                        new AccelerateInterpolator()
+                )
+                .withEndAction(
+                        () -> {
+
+                            dialog.dismiss();
+
+                            if (next != null)
+                                next.run();
+                        }
+                )
+                .start();
     }
 
     TextView rowButton(
@@ -2668,9 +3241,16 @@ public class MainActivity extends Activity {
                         icon
                                 + "    "
                                 + label,
-                        17,
+                        16,
                         primaryText()
                 );
+
+        r.setTypeface(
+                android.graphics.Typeface.create(
+                        "sans-serif-medium",
+                        android.graphics.Typeface.NORMAL
+                )
+        );
 
         r.setGravity(
                 Gravity.CENTER_VERTICAL
@@ -2692,7 +3272,11 @@ public class MainActivity extends Activity {
         g.setColor(
                 isLight()
                         ? Color.WHITE
-                        : Color.rgb(52,55,60)
+                        : Color.rgb(
+                                52,
+                                55,
+                                60
+                        )
         );
 
         g.setCornerRadius(
@@ -2878,6 +3462,7 @@ public class MainActivity extends Activity {
                                     )
                             )
                     ) {
+
                     } else {
 
                         Toast.makeText(
@@ -3264,7 +3849,11 @@ public class MainActivity extends Activity {
         b.setBackgroundColor(
                 isLight()
                         ? Color.WHITE
-                        : Color.rgb(48,50,54)
+                        : Color.rgb(
+                                48,
+                                50,
+                                54
+                        )
         );
 
         return b;
@@ -3301,7 +3890,9 @@ public class MainActivity extends Activity {
                     list.getChildAt(i)
                             .getTag();
 
-            if (tag instanceof Achievement)
+            if (
+                    tag instanceof Achievement
+            )
                 visible.add(
                         (Achievement) tag
                 );
@@ -3388,6 +3979,11 @@ public class MainActivity extends Activity {
                 );
 
                 o.put(
+                        "imageShape",
+                        a.imageShape
+                );
+
+                o.put(
                         "pinned",
                         a.pinned
                 );
@@ -3450,6 +4046,10 @@ public class MainActivity extends Activity {
                                 o.optString(
                                         "imagePath",
                                         ""
+                                ),
+                                o.optString(
+                                        "imageShape",
+                                        "circle"
                                 ),
                                 o.optBoolean(
                                         "pinned",
