@@ -67,6 +67,7 @@ public class MainActivity extends Activity {
 
         int customColor;
         String backgroundMode;
+        String backgroundImagePath;
 
         Achievement(
                 String t,
@@ -150,6 +151,7 @@ public class MainActivity extends Activity {
 
             customColor = Color.TRANSPARENT;
             backgroundMode = "default";
+            backgroundImagePath = "";
         }
     }
 
@@ -1194,19 +1196,23 @@ public class MainActivity extends Activity {
         );
 
 
+        String backgroundPath =
+                "image_custom".equals(a.backgroundMode)
+                        ? a.backgroundImagePath
+                        : a.imagePath;
+
         if (
-                "image".equals(
-                        a.backgroundMode
-                )
-                        && a.imagePath != null
-                        && !a.imagePath.isEmpty()
+                ("image".equals(a.backgroundMode)
+                        || "image_custom".equals(a.backgroundMode))
+                        && backgroundPath != null
+                        && !backgroundPath.isEmpty()
         ) {
 
             try {
 
                 Bitmap background =
                         BitmapFactory.decodeFile(
-                                a.imagePath
+                                backgroundPath
                         );
 
                 if (background != null) {
@@ -2377,6 +2383,12 @@ public class MainActivity extends Activity {
                 old.imagePath
         };
 
+        final String[] chosenBackgroundImage = {
+                old.backgroundImagePath == null
+                        ? ""
+                        : old.backgroundImagePath
+        };
+
 
         LinearLayout box =
                 new LinearLayout(this);
@@ -2724,30 +2736,49 @@ public class MainActivity extends Activity {
         imageBgBtn.setOnClickListener(
                 v -> {
 
-                    if (
-                            chosenImage[0] == null
-                                    || chosenImage[0].isEmpty()
-                    ) {
+                    new AlertDialog.Builder(this)
+                            .setTitle("Image Background")
+                            .setItems(
+                                    new String[]{
+                                            "Use Achievement Image",
+                                            "Choose Separate Background Image"
+                                    },
+                                    (dialog, which) -> {
 
-                        Toast.makeText(
-                                this,
-                                "Add an image first.",
-                                Toast.LENGTH_SHORT
-                        ).show();
+                                        if (which == 0) {
 
-                        return;
-                    }
+                                            if (
+                                                    chosenImage[0] == null
+                                                            || chosenImage[0].isEmpty()
+                                            ) {
 
-                    old.backgroundMode =
-                            "image";
+                                                Toast.makeText(
+                                                        this,
+                                                        "Add an achievement image first.",
+                                                        Toast.LENGTH_SHORT
+                                                ).show();
+                                                return;
+                                            }
 
-                    customizationStatus.setText(
-                            "Achievement image is used as the card background"
-                    );
+                                            old.backgroundMode = "image";
+                                            customizationStatus.setText(
+                                                    "Achievement image is used as the card background"
+                                            );
+                                            customizationStatus.setTextColor(
+                                                    secondaryText()
+                                            );
 
-                    customizationStatus.setTextColor(
-                            secondaryText()
-                    );
+                                        } else {
+
+                                            pickBackgroundImage(
+                                                    chosenBackgroundImage,
+                                                    customizationStatus,
+                                                    old
+                                            );
+                                        }
+                                    }
+                            )
+                            .show();
                 }
         );
 
@@ -3094,6 +3125,18 @@ public class MainActivity extends Activity {
                                 old.imagePath =
                                         chosenImage[0];
 
+                                old.backgroundImagePath =
+                                        chosenBackgroundImage[0] == null
+                                                ? ""
+                                                : chosenBackgroundImage[0];
+
+                                if (
+                                        "image_custom".equals(old.backgroundMode)
+                                                && old.backgroundImagePath.isEmpty()
+                                ) {
+                                    old.backgroundMode = "default";
+                                }
+
                                 old.imageShape =
                                         squareOption.isChecked()
                                                 ? "square"
@@ -3238,6 +3281,14 @@ public class MainActivity extends Activity {
                     "Achievement image is used as the card background"
             );
 
+        } else if (
+                "image_custom".equals(a.backgroundMode)
+        ) {
+
+            status.setText(
+                    "Separate background image selected"
+            );
+
         } else {
 
             status.setText(
@@ -3257,24 +3308,12 @@ public class MainActivity extends Activity {
                         ? a.customColor
                         : (
                             isLight()
-                                    ? Color.rgb(
-                                            70,
-                                            130,
-                                            180
-                                    )
-                                    : Color.rgb(
-                                            60,
-                                            120,
-                                            170
-                                    )
+                                    ? Color.rgb(70,130,180)
+                                    : Color.rgb(60,120,170)
                         );
 
-        final int[] rgb = {
-                Color.red(startColor),
-                Color.green(startColor),
-                Color.blue(startColor)
-        };
-
+        final float[] hsv = new float[3];
+        Color.colorToHSV(startColor, hsv);
 
         LinearLayout box =
                 new LinearLayout(this);
@@ -3284,193 +3323,214 @@ public class MainActivity extends Activity {
         );
 
         box.setPadding(
-                dp(18),
-                dp(8),
-                dp(18),
-                dp(4)
+                dp(14),
+                dp(6),
+                dp(14),
+                dp(2)
         );
 
-
-        View preview =
-                new View(this);
-
-        GradientDrawable previewBg =
-                new GradientDrawable();
-
-        previewBg.setColor(
-                Color.rgb(
-                        rgb[0],
-                        rgb[1],
-                        rgb[2]
-                )
-        );
-
-        previewBg.setCornerRadius(
-                dp(14)
-        );
-
-        preview.setBackground(
-                previewBg
-        );
+        final View preview = new View(this);
+        GradientDrawable previewBg = new GradientDrawable();
+        previewBg.setColor(startColor);
+        previewBg.setCornerRadius(dp(14));
+        preview.setBackground(previewBg);
 
         box.addView(
                 preview,
                 new LinearLayout.LayoutParams(
                         -1,
-                        dp(60)
+                        dp(54)
                 )
         );
 
-
-        TextView label =
+        final TextView valueLabel =
                 tv(
-                        "",
-                        14,
+                        "#" + String.format("%06X", 0xFFFFFF & startColor),
+                        13,
                         primaryText()
                 );
 
-        label.setGravity(
-                Gravity.CENTER
-        );
+        valueLabel.setGravity(Gravity.CENTER);
 
         box.addView(
-                label,
+                valueLabel,
                 new LinearLayout.LayoutParams(
                         -1,
-                        dp(40)
+                        dp(30)
                 )
         );
 
-
-        SeekBar red =
-                new SeekBar(this);
-
-        SeekBar green =
-                new SeekBar(this);
-
-        SeekBar blue =
-                new SeekBar(this);
-
-        red.setMax(255);
-        green.setMax(255);
-        blue.setMax(255);
-
-        red.setProgress(rgb[0]);
-        green.setProgress(rgb[1]);
-        blue.setProgress(rgb[2]);
-
+        final ColorSpectrumView spectrum =
+                new ColorSpectrumView(
+                        this,
+                        hsv
+                );
 
         box.addView(
-                colorSliderLabel("Red")
+                spectrum,
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(190)
+                )
         );
 
-        box.addView(red);
+        final HueView hueBar =
+                new HueView(
+                        this,
+                        hsv
+                );
 
-        box.addView(
-                colorSliderLabel("Green")
+        LinearLayout.LayoutParams hueLp =
+                new LinearLayout.LayoutParams(
+                        -1,
+                        dp(28)
+                );
+
+        hueLp.setMargins(
+                0,
+                dp(8),
+                0,
+                dp(8)
         );
 
-        box.addView(green);
+        box.addView(hueBar, hueLp);
 
-        box.addView(
-                colorSliderLabel("Blue")
+        LinearLayout hexRow =
+                new LinearLayout(this);
+
+        hexRow.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView hexLabel =
+                tv("HEX", 12, secondaryText());
+
+        hexRow.addView(
+                hexLabel,
+                new LinearLayout.LayoutParams(
+                        dp(42),
+                        dp(46)
+                )
         );
 
-        box.addView(blue);
+        final EditText hex =
+                new EditText(this);
 
+        hex.setText(
+                "#" + String.format(
+                        "%06X",
+                        0xFFFFFF & startColor
+                )
+        );
 
-        SeekBar.OnSeekBarChangeListener listener =
-                new SeekBar.OnSeekBarChangeListener() {
+        hex.setTextSize(14);
+        hex.setSingleLine(true);
+        hex.setInputType(InputType.TYPE_CLASS_TEXT);
+        hex.setGravity(Gravity.CENTER);
 
-                    public void onProgressChanged(
-                            SeekBar s,
-                            int value,
-                            boolean fromUser
+        hexRow.addView(
+                hex,
+                new LinearLayout.LayoutParams(
+                        0,
+                        dp(46),
+                        1
+                )
+        );
+
+        box.addView(hexRow);
+
+        final boolean[] updatingHex = {false};
+
+        Runnable refresh = () -> {
+
+            int color =
+                    Color.HSVToColor(hsv);
+
+            previewBg.setColor(color);
+            preview.invalidate();
+
+            valueLabel.setText(
+                    "#" + String.format(
+                            "%06X",
+                            0xFFFFFF & color
+                    )
+            );
+
+            if (!updatingHex[0]) {
+                updatingHex[0] = true;
+                hex.setText(
+                        "#" + String.format(
+                                "%06X",
+                                0xFFFFFF & color
+                        )
+                );
+                hex.setSelection(hex.length());
+                updatingHex[0] = false;
+            }
+
+            spectrum.invalidate();
+            hueBar.invalidate();
+        };
+
+        spectrum.setChangeListener(refresh);
+        hueBar.setChangeListener(refresh);
+
+        hex.addTextChangedListener(
+                new android.text.TextWatcher() {
+
+                    public void beforeTextChanged(
+                            CharSequence s,
+                            int start,
+                            int count,
+                            int after
+                    ) {
+                    }
+
+                    public void onTextChanged(
+                            CharSequence s,
+                            int start,
+                            int before,
+                            int count
                     ) {
 
-                        rgb[0] =
-                                red.getProgress();
+                        if (updatingHex[0])
+                            return;
 
-                        rgb[1] =
-                                green.getProgress();
+                        String value =
+                                s.toString()
+                                        .trim()
+                                        .replace("#", "");
 
-                        rgb[2] =
-                                blue.getProgress();
+                        if (value.length() == 6) {
 
-                        int color =
-                                Color.rgb(
-                                        rgb[0],
-                                        rgb[1],
-                                        rgb[2]
+                            try {
+
+                                int color =
+                                        Color.parseColor("#" + value);
+
+                                Color.colorToHSV(
+                                        color,
+                                        hsv
                                 );
 
-                        previewBg.setColor(
-                                color
-                        );
-
-                        label.setText(
-                                "RGB "
-                                        + rgb[0]
-                                        + ", "
-                                        + rgb[1]
-                                        + ", "
-                                        + rgb[2]
-                        );
-
-                        preview.invalidate();
+                                refresh.run();
+                            } catch (Exception ignored) {
+                            }
+                        }
                     }
 
-                    public void onStartTrackingTouch(
-                            SeekBar s
+                    public void afterTextChanged(
+                            android.text.Editable e
                     ) {
                     }
-
-                    public void onStopTrackingTouch(
-                            SeekBar s
-                    ) {
-                    }
-                };
-
-
-        red.setOnSeekBarChangeListener(
-                listener
+                }
         );
-
-        green.setOnSeekBarChangeListener(
-                listener
-        );
-
-        blue.setOnSeekBarChangeListener(
-                listener
-        );
-
-
-        label.setText(
-                "RGB "
-                        + rgb[0]
-                        + ", "
-                        + rgb[1]
-                        + ", "
-                        + rgb[2]
-        );
-
 
         AlertDialog dialog =
                 new AlertDialog.Builder(this)
-                        .setTitle(
-                                "Choose Custom Color"
-                        )
+                        .setTitle("Choose Custom Color")
                         .setView(box)
-                        .setNegativeButton(
-                                "Cancel",
-                                null
-                        )
-                        .setPositiveButton(
-                                "Use Color",
-                                null
-                        )
+                        .setNegativeButton("Cancel", null)
+                        .setPositiveButton("Use Color", null)
                         .create();
-
 
         dialog.setOnShowListener(
                 x -> {
@@ -3481,11 +3541,7 @@ public class MainActivity extends Activity {
                             v -> {
 
                                 a.customColor =
-                                        Color.rgb(
-                                                rgb[0],
-                                                rgb[1],
-                                                rgb[2]
-                                        );
+                                        Color.HSVToColor(hsv);
 
                                 a.backgroundMode =
                                         "color";
@@ -3505,6 +3561,231 @@ public class MainActivity extends Activity {
         );
 
         dialog.show();
+    }
+
+
+    class ColorSpectrumView extends View {
+
+        Paint p =
+                new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        float[] hsv;
+        Runnable listener;
+
+        ColorSpectrumView(
+                Context c,
+                float[] values
+        ) {
+            super(c);
+            hsv = values;
+            p.setDither(true);
+        }
+
+        void setChangeListener(Runnable r) {
+            listener = r;
+        }
+
+        protected void onDraw(Canvas c) {
+
+            float hueColor =
+                    Color.HSVToColor(
+                            new float[]{hsv[0],1f,1f}
+                    );
+
+            p.setShader(
+                    new android.graphics.LinearGradient(
+                            0,
+                            0,
+                            getWidth(),
+                            0,
+                            Color.WHITE,
+                            hueColor,
+                            android.graphics.Shader.TileMode.CLAMP
+                    )
+            );
+
+            c.drawRect(
+                    0,
+                    0,
+                    getWidth(),
+                    getHeight(),
+                    p
+            );
+
+            p.setShader(
+                    new android.graphics.LinearGradient(
+                            0,
+                            0,
+                            0,
+                            getHeight(),
+                            0x00000000,
+                            0xFF000000,
+                            android.graphics.Shader.TileMode.CLAMP
+                    )
+            );
+
+            c.drawRect(
+                    0,
+                    0,
+                    getWidth(),
+                    getHeight(),
+                    p
+            );
+
+            p.setShader(null);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(dp(2));
+            p.setColor(Color.WHITE);
+
+            float x = hsv[1] * getWidth();
+            float y = (1f - hsv[2]) * getHeight();
+
+            c.drawCircle(
+                    Math.max(2, Math.min(getWidth()-2, x)),
+                    Math.max(2, Math.min(getHeight()-2, y)),
+                    dp(8),
+                    p
+            );
+
+            p.setStyle(Paint.Style.FILL);
+        }
+
+        public boolean onTouchEvent(MotionEvent e) {
+
+            if (
+                    e.getAction() == MotionEvent.ACTION_DOWN
+                            || e.getAction() == MotionEvent.ACTION_MOVE
+            ) {
+
+                hsv[1] =
+                        Math.max(
+                                0f,
+                                Math.min(
+                                        1f,
+                                        e.getX() / getWidth()
+                                )
+                        );
+
+                hsv[2] =
+                        Math.max(
+                                0f,
+                                Math.min(
+                                        1f,
+                                        1f - e.getY() / getHeight()
+                                )
+                        );
+
+                if (listener != null)
+                    listener.run();
+
+                return true;
+            }
+
+            return true;
+        }
+    }
+
+
+    class HueView extends View {
+
+        Paint p =
+                new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        float[] hsv;
+        Runnable listener;
+
+        HueView(
+                Context c,
+                float[] values
+        ) {
+            super(c);
+            hsv = values;
+        }
+
+        void setChangeListener(Runnable r) {
+            listener = r;
+        }
+
+        protected void onDraw(Canvas c) {
+
+            int[] colors = new int[7];
+            float[] positions = new float[7];
+
+            for (int i = 0; i < 7; i++) {
+                float h = i * 60f;
+                colors[i] = Color.HSVToColor(
+                        new float[]{h,1f,1f}
+                );
+                positions[i] = i / 6f;
+            }
+
+            p.setShader(
+                    new android.graphics.LinearGradient(
+                            0,
+                            0,
+                            getWidth(),
+                            0,
+                            colors,
+                            positions,
+                            android.graphics.Shader.TileMode.CLAMP
+                    )
+            );
+
+            c.drawRoundRect(
+                    0,
+                    0,
+                    getWidth(),
+                    getHeight(),
+                    dp(14),
+                    dp(14),
+                    p
+            );
+
+            p.setShader(null);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(dp(2));
+            p.setColor(Color.WHITE);
+
+            float x =
+                    (hsv[0] / 360f)
+                            * getWidth();
+
+            c.drawCircle(
+                    Math.max(4, Math.min(getWidth()-4, x)),
+                    getHeight() / 2f,
+                    dp(8),
+                    p
+            );
+
+            p.setStyle(Paint.Style.FILL);
+        }
+
+        public boolean onTouchEvent(MotionEvent e) {
+
+            if (
+                    e.getAction() == MotionEvent.ACTION_DOWN
+                            || e.getAction() == MotionEvent.ACTION_MOVE
+            ) {
+
+                hsv[0] =
+                        Math.max(
+                                0f,
+                                Math.min(
+                                        359.9f,
+                                        e.getX()
+                                                / getWidth()
+                                                * 360f
+                                )
+                        );
+
+                if (listener != null)
+                    listener.run();
+
+                return true;
+            }
+
+            return true;
+        }
     }
 
 
@@ -3542,31 +3823,47 @@ public class MainActivity extends Activity {
                 );
 
         i.setType("image/*");
-
-        i.addCategory(
-                Intent.CATEGORY_OPENABLE
-        );
+        i.addCategory(Intent.CATEGORY_OPENABLE);
 
         imagePickerActive = true;
-
-        startActivityForResult(
-                i,
-                77
-        );
-
         pendingImageHolder = chosen;
-
         pendingPreview = preview;
-
         pendingImageButton = btn;
+
+        startActivityForResult(i, 77);
     }
 
 
     String[] pendingImageHolder;
-
     ImageView pendingPreview;
-
     Button pendingImageButton;
+
+    String[] pendingBackgroundHolder;
+    TextView pendingBackgroundStatus;
+    Achievement pendingBackgroundAchievement;
+
+
+    void pickBackgroundImage(
+            String[] chosen,
+            TextView status,
+            Achievement achievement
+    ) {
+
+        Intent i =
+                new Intent(
+                        Intent.ACTION_OPEN_DOCUMENT
+                );
+
+        i.setType("image/*");
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+
+        imagePickerActive = true;
+        pendingBackgroundHolder = chosen;
+        pendingBackgroundStatus = status;
+        pendingBackgroundAchievement = achievement;
+
+        startActivityForResult(i, 78);
+    }
 
 
     @Override
@@ -3582,20 +3879,19 @@ public class MainActivity extends Activity {
                 dataIntent
         );
 
-        if (requestCode == 77) {
-        imagePickerActive = false;
-        wasInBackground = false;
+        if (requestCode == 77 || requestCode == 78) {
+            imagePickerActive = false;
+            wasInBackground = false;
         }
 
         if (
-                requestCode != 77
+                (requestCode != 77 && requestCode != 78)
                         || resultCode != RESULT_OK
                         || dataIntent == null
         )
             return;
 
-        Uri uri =
-                dataIntent.getData();
+        Uri uri = dataIntent.getData();
 
         if (uri == null)
             return;
@@ -3608,8 +3904,25 @@ public class MainActivity extends Activity {
                                     .openInputStream(uri)
                     );
 
-            if (b != null)
-                showCropDialog(b);
+            if (b == null)
+                return;
+
+            if (requestCode == 78) {
+
+                showCropDialog(
+                        b,
+                        getBackgroundAspectRatio(),
+                        true
+                );
+
+            } else {
+
+                showCropDialog(
+                        b,
+                        1f,
+                        false
+                );
+            }
 
         } catch (Exception e) {
 
@@ -3622,14 +3935,31 @@ public class MainActivity extends Activity {
     }
 
 
+    float getBackgroundAspectRatio() {
+
+        float width =
+                getResources()
+                        .getDisplayMetrics()
+                        .widthPixels
+                        - dp(36);
+
+        float height = dp(90);
+
+        return Math.max(3.5f, width / height);
+    }
+
+
     void showCropDialog(
-            Bitmap source
+            Bitmap source,
+            float aspectRatio,
+            boolean backgroundCrop
     ) {
 
         final CropView crop =
                 new CropView(
                         this,
-                        source
+                        source,
+                        aspectRatio
                 );
 
         LinearLayout box =
@@ -3641,7 +3971,7 @@ public class MainActivity extends Activity {
 
         box.setPadding(
                 dp(10),
-                0,
+                dp(4),
                 dp(10),
                 0
         );
@@ -3650,15 +3980,18 @@ public class MainActivity extends Activity {
                 crop,
                 new LinearLayout.LayoutParams(
                         -1,
-                        dp(280)
+                        backgroundCrop
+                                ? dp(150)
+                                : dp(280)
                 )
         );
 
-
         TextView hint =
                 tv(
-                        "Crop amount",
-                        15,
+                        backgroundCrop
+                                ? "Move and pinch to fit the exact achievement background area."
+                                : "Drag to move • Pinch to zoom",
+                        13,
                         secondaryText()
                 );
 
@@ -3670,59 +4003,16 @@ public class MainActivity extends Activity {
                 hint,
                 new LinearLayout.LayoutParams(
                         -1,
-                        dp(36)
+                        dp(42)
                 )
         );
-
-
-        SeekBar seek =
-                new SeekBar(this);
-
-        seek.setMax(70);
-
-        seek.setProgress(35);
-
-        seek.setOnSeekBarChangeListener(
-                new SeekBar.OnSeekBarChangeListener() {
-
-                    public void onProgressChanged(
-                            SeekBar s,
-                            int p,
-                            boolean f
-                    ) {
-
-                        crop.setCropFraction(
-                                .25f
-                                        + .7f
-                                        * (
-                                            p
-                                                    / 70f
-                                        )
-                        );
-                    }
-
-                    public void onStartTrackingTouch(
-                            SeekBar s
-                    ) {
-                    }
-
-                    public void onStopTrackingTouch(
-                            SeekBar s
-                    ) {
-                    }
-                }
-        );
-
-        box.addView(seek);
-
 
         AlertDialog d =
                 new AlertDialog.Builder(this)
                         .setTitle(
-                                "Crop image"
-                        )
-                        .setMessage(
-                                "Move the slider to choose how much of the image stays visible."
+                                backgroundCrop
+                                        ? "Background Image"
+                                        : "Crop Image"
                         )
                         .setView(box)
                         .setNegativeButton(
@@ -3730,11 +4020,10 @@ public class MainActivity extends Activity {
                                 null
                         )
                         .setPositiveButton(
-                                "Use image",
+                                "Use Image",
                                 null
                         )
                         .create();
-
 
         d.setOnShowListener(
                 x ->
@@ -3748,18 +4037,21 @@ public class MainActivity extends Activity {
 
                                     try {
 
+                                        String prefix =
+                                                backgroundCrop
+                                                        ? "bg_"
+                                                        : "ach_";
+
                                         File f =
                                                 new File(
                                                         getFilesDir(),
-                                                        "ach_"
+                                                        prefix
                                                                 + System.currentTimeMillis()
                                                                 + ".jpg"
                                                 );
 
                                         FileOutputStream os =
-                                                new FileOutputStream(
-                                                        f
-                                                );
+                                                new FileOutputStream(f);
 
                                         out.compress(
                                                 Bitmap.CompressFormat.JPEG,
@@ -3769,24 +4061,43 @@ public class MainActivity extends Activity {
 
                                         os.close();
 
-                                        pendingImageHolder[0] =
-                                                f.getAbsolutePath();
+                                        if (backgroundCrop) {
 
-                                        pendingPreview
-                                                .setImageBitmap(
-                                                        out
+                                            if (pendingBackgroundHolder != null)
+                                                pendingBackgroundHolder[0] =
+                                                        f.getAbsolutePath();
+
+                                            if (pendingBackgroundAchievement != null)
+                                                pendingBackgroundAchievement.backgroundMode =
+                                                        "image_custom";
+
+                                            if (pendingBackgroundStatus != null) {
+                                                pendingBackgroundStatus.setText(
+                                                        "Separate background image selected"
                                                 );
+                                                pendingBackgroundStatus.setTextColor(
+                                                        secondaryText()
+                                                );
+                                            }
 
-                                        pendingImageButton
-                                                .setText(
+                                        } else {
+
+                                            if (pendingImageHolder != null)
+                                                pendingImageHolder[0] =
+                                                        f.getAbsolutePath();
+
+                                            if (pendingPreview != null)
+                                                pendingPreview.setImageBitmap(out);
+
+                                            if (pendingImageButton != null)
+                                                pendingImageButton.setText(
                                                         "CHANGE IMAGE"
                                                 );
+                                        }
 
                                         d.dismiss();
 
-                                    } catch (
-                                            Exception e
-                                    ) {
+                                    } catch (Exception e) {
 
                                         Toast.makeText(
                                                 this,
@@ -3806,308 +4117,352 @@ public class MainActivity extends Activity {
 
         Bitmap bmp;
 
-        Paint p =
+        Paint imagePaint =
                 new Paint(
                         Paint.ANTI_ALIAS_FLAG
+                                | Paint.FILTER_BITMAP_FLAG
                 );
 
-        float fraction = .6f;
+        Paint overlayPaint =
+                new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        float downX;
-        float downY;
+        Paint gridPaint =
+                new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        float offsetX;
-        float offsetY;
-
+        float aspect;
+        float scale = 1f;
+        float baseScale = 1f;
+        float offsetX = 0f;
+        float offsetY = 0f;
+        float lastX;
+        float lastY;
+        float oldDistance;
+        boolean moving;
 
         CropView(
                 Context c,
-                Bitmap b
+                Bitmap b,
+                float targetAspect
         ) {
 
             super(c);
 
             bmp = b;
+            aspect = targetAspect;
 
-            p.setFilterBitmap(true);
+            imagePaint.setFilterBitmap(true);
+            overlayPaint.setColor(0x99000000);
+            gridPaint.setColor(Color.WHITE);
+            gridPaint.setStyle(Paint.Style.STROKE);
+            gridPaint.setStrokeWidth(dp(1));
+            gridPaint.setAlpha(190);
+
+            setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         }
 
 
-        void setCropFraction(
-                float f
-        ) {
+        RectF getCropRect() {
 
-            fraction = f;
+            float vw = getWidth() - dp(16);
+            float vh = getHeight() - dp(16);
 
-            invalidate();
+            float w;
+            float h;
+
+            if (aspect >= vw / vh) {
+                w = vw;
+                h = w / aspect;
+            } else {
+                h = vh;
+                w = h * aspect;
+            }
+
+            float left = (getWidth() - w) / 2f;
+            float top = (getHeight() - h) / 2f;
+
+            return new RectF(
+                    left,
+                    top,
+                    left + w,
+                    top + h
+            );
         }
 
 
-        protected void onDraw(
-                Canvas c
+        @Override
+        protected void onSizeChanged(
+                int w,
+                int h,
+                int oldw,
+                int oldh
         ) {
+
+            super.onSizeChanged(w, h, oldw, oldh);
+
+            RectF r = getCropRect();
+
+            baseScale =
+                    Math.max(
+                            r.width() / bmp.getWidth(),
+                            r.height() / bmp.getHeight()
+                    );
+
+            scale = baseScale;
+            offsetX = 0;
+            offsetY = 0;
+        }
+
+
+        protected void onDraw(Canvas c) {
 
             super.onDraw(c);
 
-            float scale =
-                    Math.max(
-                            getWidth()
-                                    / (float) bmp.getWidth(),
-                            getHeight()
-                                    / (float) bmp.getHeight()
-                    );
+            RectF crop = getCropRect();
 
-            float w =
-                    bmp.getWidth()
-                            * scale;
+            float s = Math.max(baseScale, scale);
 
-            float h =
-                    bmp.getHeight()
-                            * scale;
+            float w = bmp.getWidth() * s;
+            float h = bmp.getHeight() * s;
 
             float left =
-                    (getWidth() - w) / 2
+                    (getWidth() - w) / 2f
                             + offsetX;
 
             float top =
-                    (getHeight() - h) / 2
+                    (getHeight() - h) / 2f
                             + offsetY;
 
-            c.drawBitmap(
-                    bmp,
-                    null,
+            RectF imageRect =
                     new RectF(
                             left,
                             top,
                             left + w,
                             top + h
-                    ),
-                    p
+                    );
+
+            c.drawColor(Color.BLACK);
+            c.drawBitmap(
+                    bmp,
+                    null,
+                    imageRect,
+                    imagePaint
             );
-
-
-            float size =
-                    Math.min(
-                            getWidth(),
-                            getHeight()
-                    ) * fraction;
-
-            float cx =
-                    getWidth() / 2f
-                            + offsetX;
-
-            float cy =
-                    getHeight() / 2f
-                            + offsetY;
-
-
-            p.setColor(
-                    0x99000000
-            );
-
-            p.setStyle(
-                    Paint.Style.FILL
-            );
-
 
             c.drawRect(
                     0,
                     0,
                     getWidth(),
-                    Math.max(
-                            0,
-                            cy - size / 2
-                    ),
-                    p
+                    crop.top,
+                    overlayPaint
             );
-
             c.drawRect(
                     0,
-                    cy + size / 2,
+                    crop.bottom,
                     getWidth(),
                     getHeight(),
-                    p
+                    overlayPaint
             );
-
             c.drawRect(
                     0,
-                    cy - size / 2,
-                    Math.max(
-                            0,
-                            cx - size / 2
-                    ),
-                    cy + size / 2,
-                    p
+                    crop.top,
+                    crop.left,
+                    crop.bottom,
+                    overlayPaint
             );
-
             c.drawRect(
-                    cx + size / 2,
-                    cy - size / 2,
+                    crop.right,
+                    crop.top,
                     getWidth(),
-                    cy + size / 2,
-                    p
+                    crop.bottom,
+                    overlayPaint
             );
 
+            float thirdX = crop.width() / 3f;
+            float thirdY = crop.height() / 3f;
 
-            p.setColor(
-                    Color.WHITE
+            c.drawLine(
+                    crop.left + thirdX,
+                    crop.top,
+                    crop.left + thirdX,
+                    crop.bottom,
+                    gridPaint
+            );
+            c.drawLine(
+                    crop.left + thirdX * 2,
+                    crop.top,
+                    crop.left + thirdX * 2,
+                    crop.bottom,
+                    gridPaint
+            );
+            c.drawLine(
+                    crop.left,
+                    crop.top + thirdY,
+                    crop.right,
+                    crop.top + thirdY,
+                    gridPaint
+            );
+            c.drawLine(
+                    crop.left,
+                    crop.top + thirdY * 2,
+                    crop.right,
+                    crop.top + thirdY * 2,
+                    gridPaint
             );
 
-            p.setStyle(
-                    Paint.Style.STROKE
-            );
-
-            p.setStrokeWidth(
-                    dp(2)
-            );
-
-            c.drawRect(
-                    cx - size / 2,
-                    cy - size / 2,
-                    cx + size / 2,
-                    cy + size / 2,
-                    p
-            );
-
-            p.setStyle(
-                    Paint.Style.FILL
-            );
+            c.drawRect(crop, gridPaint);
         }
 
 
-        public boolean onTouchEvent(
-                android.view.MotionEvent e
-        ) {
+        public boolean onTouchEvent(MotionEvent e) {
 
-            if (
-                    e.getAction()
-                            == MotionEvent.ACTION_DOWN
-            ) {
+            switch (e.getActionMasked()) {
 
-                downX = e.getX();
+                case MotionEvent.ACTION_DOWN:
+                    lastX = e.getX();
+                    lastY = e.getY();
+                    moving = true;
+                    return true;
 
-                downY = e.getY();
+                case MotionEvent.ACTION_POINTER_DOWN:
+                    if (e.getPointerCount() >= 2) {
+                        oldDistance = distance(e);
+                    }
+                    return true;
 
-                return true;
-            }
+                case MotionEvent.ACTION_MOVE:
 
+                    if (e.getPointerCount() >= 2) {
 
-            if (
-                    e.getAction()
-                            == MotionEvent.ACTION_MOVE
-            ) {
+                        float d = distance(e);
 
-                offsetX +=
-                        e.getX() - downX;
+                        if (oldDistance > 0f && d > 0f) {
 
-                offsetY +=
-                        e.getY() - downY;
+                            float factor = d / oldDistance;
+                            scale *= factor;
 
-                downX = e.getX();
+                            float maxScale =
+                                    baseScale * 8f;
 
-                downY = e.getY();
+                            scale = Math.max(
+                                    baseScale,
+                                    Math.min(maxScale, scale)
+                            );
 
-                invalidate();
+                            oldDistance = d;
+                        }
 
-                return true;
+                    } else if (moving) {
+
+                        float dx = e.getX() - lastX;
+                        float dy = e.getY() - lastY;
+
+                        offsetX += dx;
+                        offsetY += dy;
+
+                        lastX = e.getX();
+                        lastY = e.getY();
+                    }
+
+                    clampOffsets();
+                    invalidate();
+                    return true;
+
+                case MotionEvent.ACTION_POINTER_UP:
+                    oldDistance = 0f;
+                    if (e.getPointerCount() > 1) {
+                        int idx = e.getActionIndex() == 0 ? 1 : 0;
+                        lastX = e.getX(idx);
+                        lastY = e.getY(idx);
+                    }
+                    return true;
+
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    moving = false;
+                    oldDistance = 0f;
+                    return true;
             }
 
             return true;
         }
 
 
+        float distance(MotionEvent e) {
+
+            float dx = e.getX(0) - e.getX(1);
+            float dy = e.getY(0) - e.getY(1);
+
+            return (float) Math.sqrt(dx * dx + dy * dy);
+        }
+
+
+        void clampOffsets() {
+
+            RectF crop = getCropRect();
+
+            float s = Math.max(baseScale, scale);
+            float w = bmp.getWidth() * s;
+            float h = bmp.getHeight() * s;
+
+            float centerX = getWidth() / 2f + offsetX;
+            float centerY = getHeight() / 2f + offsetY;
+
+            float minX = crop.right - w / 2f;
+            float maxX = crop.left + w / 2f;
+            float minY = crop.bottom - h / 2f;
+            float maxY = crop.top + h / 2f;
+
+            centerX = Math.max(minX, Math.min(maxX, centerX));
+            centerY = Math.max(minY, Math.min(maxY, centerY));
+
+            offsetX = centerX - getWidth() / 2f;
+            offsetY = centerY - getHeight() / 2f;
+        }
+
+
         Bitmap getCroppedBitmap() {
 
-            float scale =
-                    Math.max(
-                            getWidth()
-                                    / (float) bmp.getWidth(),
-                            getHeight()
-                                    / (float) bmp.getHeight()
-                    );
+            RectF crop = getCropRect();
 
-            float w =
-                    bmp.getWidth()
-                            * scale;
+            float s = Math.max(baseScale, scale);
 
-            float h =
-                    bmp.getHeight()
-                            * scale;
+            float w = bmp.getWidth() * s;
+            float h = bmp.getHeight() * s;
 
             float left =
-                    (getWidth() - w) / 2
+                    (getWidth() - w) / 2f
                             + offsetX;
 
             float top =
-                    (getHeight() - h) / 2
+                    (getHeight() - h) / 2f
                             + offsetY;
-
-
-            float size =
-                    Math.min(
-                            getWidth(),
-                            getHeight()
-                    ) * fraction;
-
-            float cx =
-                    getWidth() / 2f
-                            + offsetX;
-
-            float cy =
-                    getHeight() / 2f
-                            + offsetY;
-
 
             float sx =
-                    (
-                            cx
-                                    - size / 2
-                                    - left
-                    ) / scale;
+                    (crop.left - left) / s;
 
             float sy =
-                    (
-                            cy
-                                    - size / 2
-                                    - top
-                    ) / scale;
+                    (crop.top - top) / s;
 
-            float ss =
-                    size / scale;
+            float sw = crop.width() / s;
+            float sh = crop.height() / s;
 
+            sx = Math.max(0, Math.min(bmp.getWidth() - sw, sx));
+            sy = Math.max(0, Math.min(bmp.getHeight() - sh, sy));
 
-            sx =
-                    Math.max(
-                            0,
-                            Math.min(
-                                    bmp.getWidth() - ss,
-                                    sx
-                            )
-                    );
+            int x = Math.max(0, (int) sx);
+            int y = Math.max(0, (int) sy);
+            int wpx = Math.max(1, Math.min(bmp.getWidth() - x, (int) sw));
+            int hpx = Math.max(1, Math.min(bmp.getHeight() - y, (int) sh));
 
-            sy =
-                    Math.max(
-                            0,
-                            Math.min(
-                                    bmp.getHeight() - ss,
-                                    sy
-                            )
-                    );
-
-
-            return Bitmap.createBitmap(
+            Bitmap raw = Bitmap.createBitmap(
                     bmp,
-                    (int) sx,
-                    (int) sy,
-                    Math.max(
-                            1,
-                            (int) ss
-                    ),
-                    Math.max(
-                            1,
-                            (int) ss
-                    )
+                    x,
+                    y,
+                    wpx,
+                    hpx
             );
+
+            return raw;
         }
     }
 
@@ -5428,6 +5783,13 @@ public class MainActivity extends Activity {
                         a.backgroundMode
                 );
 
+                o.put(
+                        "backgroundImagePath",
+                        a.backgroundImagePath == null
+                                ? ""
+                                : a.backgroundImagePath
+                );
+
                 arr.put(o);
             }
 
@@ -5514,6 +5876,12 @@ public class MainActivity extends Activity {
                         o.optString(
                                 "backgroundMode",
                                 "default"
+                        );
+
+                item.backgroundImagePath =
+                        o.optString(
+                                "backgroundImagePath",
+                                ""
                         );
 
 
