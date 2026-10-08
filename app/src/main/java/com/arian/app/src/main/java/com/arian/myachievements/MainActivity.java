@@ -3587,7 +3587,7 @@ public class MainActivity extends Activity {
 
         protected void onDraw(Canvas c) {
 
-            float hueColor =
+            int hueColor =
                     Color.HSVToColor(
                             new float[]{hsv[0],1f,1f}
                     );
